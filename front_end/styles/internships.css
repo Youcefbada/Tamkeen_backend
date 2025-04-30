@@ -1,0 +1,30 @@
+.internship-list,
+  .training-program-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+  }
+  
+  .internship-item,
+  .training-program-item {
+    background: #fff;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  
+  .internship-item h3,
+  .training-program-item h3 {
+    margin-bottom: 10px;
+    color: #004aad;
+  }
+  
+  .internship-item p,
+  .training-program-item p {
+    margin-bottom: 5px;
+  }
+  
+  .internship-item button,
+  .training-program-item button {
+    margin-top: 10px;
+  }
