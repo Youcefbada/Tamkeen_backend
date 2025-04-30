@@ -1,0 +1,182 @@
+<!-- pages/training-center/programs.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage Training Programs - TAMKIN</title>
+  <link rel="stylesheet" href="../../styles/main.css">
+  <link rel="stylesheet" href="../../styles/programs.css">
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1>TAMKIN</h1>
+      <nav>
+        <ul>
+          <li><a href="../../index.html">Home</a></li>
+          <li><a href="../internships.html">Internships</a></li>
+          <li><a href="../training-programs.html">Training Programs</a></li>
+          <li><a href="#" onclick="logout()">Logout</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <div class="sidebar">
+    <ul>
+      <li><a href="dashboard.html" class="text-icon">Dashboard</a></li>
+      <li><a href="profile.html" class="text-icon">Profile</a></li>
+      <li><a href="programs.html" class="text-icon">Manage Programs</a></li>
+      <li><a href="applications.html" class="text-icon">View Applications</a></li>
+    </ul>
+  </div>
+
+  <main>
+    <div class="container">
+      <h2>Manage Training Programs</h2>
+      <div class="program-form" id="program-form-container">
+        <h3 id="form-title">Add New Training Program</h3>
+        <form id="program-form">
+          <div class="form-group">
+            <label for="title">Title</label>
+            <input type="text" id="title" name="title" required>
+          </div>
+          <div class="form-group">
+            <label for="description">Description</label>
+            <textarea id="description" name="description" required></textarea>
+          </div>
+          <div class="form-group">
+            <label for="start_date">Start Date</label>
+            <input type="date" id="start_date" name="start_date" required>
+          </div>
+          <div class="form-group">
+            <label for="end_date">End Date</label>
+            <input type="date" id="end_date" name="end_date" required>
+          </div>
+          <div class="form-group">
+            <label for="status">Status</label>
+            <select id="status" name="status" required>
+              <option value="open">Open</option>
+              <option value="closed">Closed</option>
+            </select>
+          </div>
+          <button type="submit">Submit Program</button>
+          <div class="error"></div>
+        </form>
+      </div>
+      <h3>Existing Training Programs</h3>
+      <table class="program-table">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Start Date</th>
+            <th>End Date</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="program-list">
+          <!-- Populated by JavaScript -->
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>© 2025 TAMKIN. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="../../scripts/api.js"></script>
+  <script src="../../scripts/utils.js"></script>
+  <script src="../../scripts/training-center.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      checkAuth();
+      loadPrograms();
+      const programForm = document.getElementById('program-form');
+      const urlParams = new URLSearchParams(window.location.search);
+      const editId = urlParams.get('edit');
+
+      if (editId) {
+        document.getElementById('form-title').textContent = 'Edit Training Program';
+        loadProgramForEdit(editId);
+      }
+
+      programForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(programForm);
+        const data = Object.fromEntries(formData);
+        const centerId = localStorage.getItem('userId');
+        try {
+          if (editId) {
+            await apiRequest(`/training_programs/${editId}`, 'PUT', data);
+            alert('Program updated successfully');
+            window.location.href = 'programs.html';
+          } else {
+            await apiRequest(`/training_centers/${centerId}/training_programs`, 'POST', data);
+            alert('Program added successfully');
+            programForm.reset();
+            loadPrograms();
+          }
+        } catch (error) {
+          showError(programForm, error.message);
+        }
+      });
+    });
+
+    async function loadPrograms() {
+      try {
+        const centerId = localStorage.getItem('userId');
+        const programs = await apiRequest(`/training_centers/${centerId}/training_programs`);
+        const list = document.getElementById('program-list');
+        list.innerHTML = programs.map(program => `
+          <tr>
+            <td>${program.title}</td>
+            <td>${program.start_date}</td>
+            <td>${program.end_date}</td>
+            <td class="status-${program.status.toLowerCase()}">${program.status}</td>
+            <td>
+              <button onclick="editProgram('${program.id}')">Edit</button>
+              <button onclick="deleteProgram('${program.id}')">Delete</button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (error) {
+        console.error('Error loading programs:', error);
+      }
+    }
+
+    async function loadProgramForEdit(id) {
+      try {
+        const program = await apiRequest(`/training_programs/${id}`);
+        document.getElementById('title').value = program.title;
+        document.getElementById('description').value = program.description;
+        document.getElementById('start_date').value = program.start_date;
+        document.getElementById('end_date').value = program.end_date;
+        document.getElementById('status').value = program.status.toLowerCase();
+      } catch (error) {
+        console.error('Error loading program:', error);
+        alert('Failed to load program data');
+      }
+    }
+
+    function editProgram(id) {
+      window.location.href = `programs.html?edit=${id}`;
+    }
+
+    async function deleteProgram(id) {
+      if (confirm('Are you sure you want to delete this training program?')) {
+        try {
+          await apiRequest(`/training_programs/${id}`, 'DELETE');
+          loadPrograms();
+        } catch (error) {
+          alert(error.message);
+        }
+      }
+    }
+  </script>
+</body>
+</html>
