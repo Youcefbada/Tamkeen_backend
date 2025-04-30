@@ -69,7 +69,7 @@ CREATE TABLE trainers (
   wilaya VARCHAR(500),
   Commune VARCHAR(500),
   Street VARCHAR(500),
-  passsword VARCHAR(500),
+  password VARCHAR(500),
   education_level VARCHAR(500),
   interests VARCHAR(500),
   other_skill VARCHAR(500),

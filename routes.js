@@ -1907,231 +1907,109 @@ app.get('/interests', verifyToken, async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
-
-// POST /interests - Create a new interest
-app.post('/interests', verifyToken, /* verifyAdmin, */ async (req, res) => {
-  const { name } = req.body;
-
-  // Validate required fields
-  if (!name) {
-    return res.status(400).json({ error: 'Interest name is required' });
-  }
+app.get('/companies/:id/internship_applications', verifyToken, async (req, res) => {
+  const companyId = req.params.id;
 
   try {
-    // Check if the interest name already exists
-    const [existingInterest] = await pool.query('SELECT id FROM interests WHERE name = ?', [name]);
-    if (existingInterest.length > 0) {
-      return res.status(400).json({ error: 'Interest name already exists' });
+    const [existingCompany] = await pool.query('SELECT id FROM companies WHERE id = ?', [companyId]);
+    if (existingCompany.length === 0) {
+      return res.status(404).json({ error: 'الشركة غير موجودة' });
     }
 
-    // Insert the new interest
-    const [result] = await pool.query(
-      'INSERT INTO interests (name, created_at) VALUES (?, NOW())',
-      [name]
-    );
-
-    res.json({ message: 'Interest created successfully', interestId: result.insertId });
-  } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-// PUT /interests/:id - Update a specific interest
-app.put('/interests/:id', verifyToken, /* verifyAdmin, */ async (req, res) => {
-  const { name } = req.body;
-
-  // Validate required fields
-  if (!name) {
-    return res.status(400).json({ error: 'Interest name is required' });
-  }
-
-  try {
-    // Check if the interest exists
-    const [existingInterest] = await pool.query('SELECT id FROM interests WHERE id = ?', [req.params.id]);
-    if (existingInterest.length === 0) {
-      return res.status(404).json({ error: 'Interest not found' });
+    if (req.companyId !== parseInt(companyId) && !req.isAdmin) {
+      return res.status(403).json({ error: 'غير مصرح لك برؤية طلبات هذه الشركة' });
     }
 
-    // Check if the new name is already taken by another interest
-    const [nameCheck] = await pool.query('SELECT id FROM interests WHERE name = ? AND id != ?', [name, req.params.id]);
-    if (nameCheck.length > 0) {
-      return res.status(400).json({ error: 'Interest name already exists' });
+    const [applications] = await pool.query(
+      `
+      SELECT 
+        ia.id AS application_id,
+        ia.education_level,
+        ia.status,
+        ia.created_at AS application_date,
+        i.id AS internship_id,
+        i.title AS internship_title,
+        u.id AS user_id,
+        u.first_name,
+        u.last_name,
+        u.email,
+        u.phone
+      FROM internship_applications ia
+      INNER JOIN internships i ON ia.internship_id = i.id
+      INNER JOIN users u ON ia.user_id = u.id
+      WHERE i.company_id = ?
+      ORDER BY ia.created_at DESC
+      `,
+      [companyId]
+    );
+
+    if (applications.length === 0) {
+      return res.status(200).json({ message: 'لا توجد طلبات تدريب داخلي لهذه الشركة', applications: [] });
     }
 
-    // Update the interest
-    await pool.query(
-      'UPDATE interests SET name = ? WHERE id = ?',
-      [name, req.params.id]
-    );
-
-    res.json({ message: 'Interest updated successfully' });
+    res.json({
+      message: 'تم استرجاع طلبات التدريب الداخلي بنجاح',
+      applications
+    });
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'Server error' });
+    console.error('خطأ في استرجاع طلبات التدريب الداخلي:', {
+      companyId,
+      error: error.message
+    });
+    res.status(500).json({ error: 'خطأ في الخادم' });
   }
 });
+app.get('/training_centers/:id/program_applications', verifyToken, async (req, res) => {
+  const centerId = req.params.id;
 
-// DELETE /interests/:id - Delete a specific interest
-app.delete('/interests/:id', verifyToken, /* verifyAdmin, */ async (req, res) => {
   try {
-    // Check if the interest exists
-    const [existingInterest] = await pool.query('SELECT id FROM interests WHERE id = ?', [req.params.id]);
-    if (existingInterest.length === 0) {
-      return res.status(404).json({ error: 'Interest not found' });
+    const [existingCenter] = await pool.query('SELECT id FROM training_centers WHERE id = ?', [centerId]);
+    if (existingCenter.length === 0) {
+      return res.status(404).json({ error: 'مركز التدريب غير موجود' });
     }
 
-    // Check if the interest is used in user_interests
-    const [userInterests] = await pool.query('SELECT id FROM user_interests WHERE interest_id = ?', [req.params.id]);
-    if (userInterests.length > 0) {
-      return res.status(400).json({ error: 'Cannot delete interest with associated user interests' });
+    if (req.centerId !== parseInt(centerId) && !req.isAdmin) {
+      return res.status(403).json({ error: 'غير مصرح لك برؤية طلبات هذا المركز' });
     }
 
-    // Delete the interest
-    await pool.query('DELETE FROM interests WHERE id = ?', [req.params.id]);
-
-    res.json({ message: 'Interest deleted successfully' });
-  } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-app.get('/notifications', verifyToken, /* verifyAdmin, */ async (req, res) => {
-  try {
-    const [results] = await pool.query(
-      'SELECT id, user_id, content, is_read, created_at, updated_at FROM notifications'
-    );
-    res.json(results);
-  } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-// GET /notifications/:id - Retrieve details of a specific notification
-app.get('/notifications/:id', verifyToken, async (req, res) => {
-  try {
-    const [results] = await pool.query(
-      'SELECT id, user_id, content, is_read, created_at, updated_at FROM notifications WHERE id = ?',
-      [req.params.id]
-    );
-    if (results.length === 0) return res.status(404).json({ error: 'Notification not found' });
-
-    // Optionally restrict access to the notification's user or admin
-    // if (results[0].user_id !== req.userId) {
-    //   const [user] = await pool.query('SELECT role FROM users WHERE id = ?', [req.userId]);
-    //   if (user.length === 0 || user[0].role !== 'admin') {
-    //     return res.status(403).json({ error: 'Unauthorized to view this notification' });
-    //   }
-    // }
-
-    res.json(results[0]);
-  } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-// POST /notifications - Create a new notification
-app.post('/notifications', verifyToken, /* verifyAdmin, */ async (req, res) => {
-  const { user_id, content, is_read } = req.body;
-
-  // Validate required fields
-  if (!user_id || !content) {
-    return res.status(400).json({ error: 'User ID and content are required' });
-  }
-
-  try {
-    // Check if the user exists
-    const [existingUser] = await pool.query('SELECT id FROM users WHERE id = ?', [user_id]);
-    if (existingUser.length === 0) return res.status(404).json({ error: 'User not found' });
-
-    // Insert the new notification
-    const [result] = await pool.query(
-      'INSERT INTO notifications (user_id, content, is_read, created_at) VALUES (?, ?, ?, NOW())',
-      [user_id, content, is_read || false]
+    const [applications] = await pool.query(
+      `
+      SELECT 
+        pa.id AS application_id,
+        pa.education_level,
+        pa.status,
+        pa.created_at AS application_date,
+        tp.id AS program_id,
+        tp.title AS program_title,
+        u.id AS user_id,
+        u.first_name,
+        u.last_name,
+        u.email,
+        u.phone
+      FROM program_applications pa
+      INNER JOIN training_programs tp ON pa.training_program_id = tp.id
+      INNER JOIN users u ON pa.user_id = u.id
+      WHERE tp.center_id = ?
+      ORDER BY pa.created_at DESC
+      `,
+      [centerId]
     );
 
-    res.json({ message: 'Notification created successfully', notificationId: result.insertId });
+    if (applications.length === 0) {
+      return res.status(200).json({ message: 'لا توجد طلبات برامج تدريبية لهذا المركز', applications: [] });
+    }
+
+    res.json({
+      message: 'تم استرجاع طلبات البرامج التدريبية بنجاح',
+      applications
+    });
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'Server error' });
+    console.error('خطأ في استرجاع طلبات البرامج التدريبية:', {
+      centerId,
+      error: error.message
+    });
+    res.status(500).json({ error: 'خطأ في الخادم' });
   }
 });
 
-// PUT /notifications/:id - Update a specific notification
-app.put('/notifications/:id', verifyToken, /* verifyAdmin, */ async (req, res) => {
-  const { user_id, content, is_read } = req.body;
-
-  // Validate required fields
-  if (!user_id || !content) {
-    return res.status(400).json({ error: 'User ID and content are required' });
-  }
-
-  try {
-    // Check if the notification exists
-    const [existingNotification] = await pool.query('SELECT id FROM notifications WHERE id = ?', [req.params.id]);
-    if (existingNotification.length === 0) return res.status(404).json({ error: 'Notification not found' });
-
-    // Check if the user exists
-    const [existingUser] = await pool.query('SELECT id FROM users WHERE id = ?', [user_id]);
-    if (existingUser.length === 0) return res.status(404).json({ error: 'User not found' });
-
-    // Update the notification
-    await pool.query(
-      'UPDATE notifications SET user_id = ?, content = ?, is_read = ? WHERE id = ?',
-      [user_id, content, is_read || false, req.params.id]
-    );
-
-    res.json({ message: 'Notification updated successfully' });
-  } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-// DELETE /notifications/:id - Delete a specific notification
-app.delete('/notifications/:id', verifyToken, /* verifyAdmin, */ async (req, res) => {
-  try {
-    // Check if the notification exists
-    const [existingNotification] = await pool.query('SELECT id FROM notifications WHERE id = ?', [req.params.id]);
-    if (existingNotification.length === 0) return res.status(404).json({ error: 'Notification not found' });
-
-    // Delete the notification
-    await pool.query('DELETE FROM notifications WHERE id = ?', [req.params.id]);
-
-    res.json({ message: 'Notification deleted successfully' });
-  } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-// GET /users/:id/notifications - Retrieve all notifications for a specific user
-app.get('/users/:id/notifications', verifyToken, async (req, res) => {
-  try {
-    // Check if the user exists
-    const [existingUser] = await pool.query('SELECT id FROM users WHERE id = ?', [req.params.id]);
-    if (existingUser.length === 0) return res.status(404).json({ error: 'User not found' });
-
-    // Optionally restrict access to the user themselves or admin
-    // if (req.params.id != req.userId) {
-    //   const [user] = await pool.query('SELECT role FROM users WHERE id = ?', [req.userId]);
-    //   if (user.length === 0 || user[0].role !== 'admin') {
-    //     return res.status(403).json({ error: 'Unauthorized to view this user’s notifications' });
-    //   }
-    // }
-
-    // Retrieve notifications for the user
-    const [results] = await pool.query(
-      'SELECT id, user_id, content, is_read, created_at, updated_at FROM notifications WHERE user_id = ?',
-      [req.params.id]
-    );
-
-    res.json(results);
-  } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
 app.listen(3000, () => console.log('Server running on port 3000'));
