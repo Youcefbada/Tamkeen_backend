@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Signup Company</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      padding: 30px;
+    }
+
+    h2 {
+      text-align: center;
+      color: #333;
+    }
+
+    form {
+      max-width: 500px;
+      margin: auto;
+      padding: 30px;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="file"],
+    textarea {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0 20px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    button {
+      width: 100%;
+      background-color: #28a745;
+      color: white;
+      padding: 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #218838;
+    }
+
+    #message {
+      text-align: center;
+      margin-top: 15px;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Register a Company</h2>
+
+  <form id="companyForm">
+    <input type="text" name="name" placeholder="Company Name" required>
+    <input type="email" name="email" placeholder="Company Email" required>
+    <input type="password" name="password" placeholder="Password" required>
+    <input type="text" name="phone" placeholder="Phone Number" required>
+    <input type="text" name="address" placeholder="Address" required>
+    <input type="text" name="location" placeholder="Location (e.g. Coordinates)" required>
+    <label>Logo:</label>
+    <input type="file" name="logo" accept="image/*" required>
+    <button type="submit">Register Company</button>
+    <div id="message"></div>
+  </form>
+
+  <script>
+    const form = document.getElementById('companyForm');
+    const message = document.getElementById('message');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const formData = new FormData(form);
+
+      try {
+        const res = await fetch('http://localhost:3000/signupcompanies', {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          alert('✅ Company registered successfully!');
+          message.style.color = 'green';
+          message.textContent = data.message;
+        } else {
+          message.style.color = 'red';
+          message.textContent = data.error || 'Something went wrong';
+          alert(data.error || 'Something went wrong'); 
+        }
+      } catch (err) {
+        message.style.color = 'red';
+        message.textContent = '⚠️ Server connection failed';
+        console.error(err);
+        alert(err)
+      }
+    });
+  </script>
+
+</body>
+</html>

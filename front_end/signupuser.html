@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Signup User</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f1f3f5;
+      padding: 30px;
+    }
+
+    h2 {
+      text-align: center;
+      color: #444;
+    }
+
+    form {
+      max-width: 600px;
+      margin: auto;
+      padding: 30px;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    input, select, label {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0 20px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    input[type="file"] {
+      padding: 5px;
+    }
+
+    button {
+      width: 100%;
+      background-color: #007bff;
+      color: white;
+      padding: 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    #message {
+      text-align: center;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Register as User</h2>
+
+  <form id="userForm">
+    <input type="text" name="first_name" placeholder="First Name" required>
+    <input type="text" name="last_name" placeholder="Last Name" required>
+    <input type="email" name="email" placeholder="Email" required>
+    <input type="password" name="password" placeholder="Password" required>
+    <input type="text" name="phone" placeholder="Phone Number" required>
+    <input type="text" name="address" placeholder="Address" required>
+    <select name="user_type" required>
+      <option value="">Select User Type</option>
+      <option value="trainee">Trainee</option>
+      <option value="trainer">Trainer</option>
+    </select>
+
+    <label>Receive Notifications?</label>
+    <select name="receive_notifications" required>
+      <option value="">Choose</option>
+      <option value="true">Yes</option>
+      <option value="false">No</option>
+    </select>
+
+    <label>Notification Type:</label>
+    <select name="notification_type" required>
+      <option value="">Select Type</option>
+      <option value="email">Email</option>
+      <option value="sms">SMS</option>
+      <option value="both">Both</option>
+    </select>
+
+    <label>Profile Picture:</label>
+    <input type="file" name="profile_picture" accept="image/*" required>
+
+    <button type="submit">Register User</button>
+    <div id="message"></div>
+  </form>
+
+  <script>
+    const form = document.getElementById('userForm');
+    const message = document.getElementById('message');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const formData = new FormData(form);
+
+      try {
+        const res = await fetch('http://localhost:3000/signupuser', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        if (res.ok) {
+          message.style.color = 'green';
+          message.textContent = data.message;
+          alert('✅ User registered successfully!');
+        } else {
+          message.style.color = 'red';
+          message.textContent = data.error || 'Something went wrong';
+          alert(data.error || 'Something went wrong');
+        }
+      } catch (err) {
+        console.error(err);
+        message.style.color = 'red';
+        message.textContent = '⚠️ Server connection failed';
+        alert('⚠️ Server connection failed');
+      }
+    });
+  </script>
+</body>
+</html>
