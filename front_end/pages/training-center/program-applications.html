@@ -1,0 +1,105 @@
+<!-- pages/training-center/applications.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Training Program Applications - TAMKIN</title>
+  <link rel="stylesheet" href="../../styles/main.css">
+  <link rel="stylesheet" href="../../styles/applications.css">
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1>TAMKIN</h1>
+      <nav>
+        <ul>
+          <li><a href="../../index.html">Home</a></li>
+          <li><a href="../internships.html">Internships</a></li>
+          <li><a href="../training-programs.html">Training Programs</a></li>
+          <li><a href="#" onclick="logout()">Logout</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <div class="sidebar">
+    <ul>
+      <li><a href="dashboard.html" class="text-icon">Dashboard</a></li>
+      <li><a href="profile.html" class="text-icon">Profile</a></li>
+      <li><a href="programs.html" class="text-icon">Manage Programs</a></li>
+      <li><a href="applications.html" class="text-icon">View Applications</a></li>
+    </ul>
+  </div>
+
+  <main>
+    <div class="container">
+      <h2>Training Program Applications</h2>
+      <table class="application-table">
+        <thead>
+          <tr>
+            <th>Program ID</th>
+            <th>Education Level</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="program-application-list">
+          <!-- Populated by JavaScript -->
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>© 2025 TAMKIN. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="../../scripts/api.js"></script>
+  <script src="../../scripts/utils.js"></script>
+  <script src="../../scripts/training-center.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      checkAuth();
+      loadProgramApplications();
+    });
+
+    async function loadProgramApplications() {
+      try {
+        const centerId = localStorage.getItem('userId');
+        const applications = await apiRequest(`/training_centers/${centerId}/program_applications`);
+        const list = document.getElementById('program-application-list');
+        list.innerHTML = applications.map(app => `
+          <tr>
+            <td>${app.training_program_id}</td>
+            <td>${app.education_level}</td>
+            <td class="status-${app.status.toLowerCase()}">${app.status}</td>
+            <td>
+              ${app.status === 'pending' ? `
+                <button onclick="updateApplicationStatus(${app.id}, 'accepted')">Accept</button>
+                <button onclick="updateApplicationStatus(${app.id}, 'rejected')">Reject</button>
+              ` : ''}
+            </td>
+          </tr>
+        `).join('');
+      } catch (error) {
+        console.error('Error loading program applications:', error);
+        alert('Failed to load applications');
+      }
+    }
+
+    async function updateApplicationStatus(id, status) {
+      try {
+        await apiRequest(`/program_applications/${id}`, 'PUT', { status });
+        alert(`Application ${status} successfully`);
+        loadProgramApplications();
+      } catch (error) {
+        console.error('Error updating application status:', error);
+        alert('Failed to update application status');
+      }
+    }
+  </script>
+</body>
+</html>

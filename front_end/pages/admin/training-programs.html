@@ -1,0 +1,204 @@
+<!-- pages/admin/training-programs.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage Training Programs - TAMKIN</title>
+  <link rel="stylesheet" href="../../styles/main.css">
+  <link rel="stylesheet" href="../../styles/training-programs.css">
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1>TAMKIN</h1>
+      <nav>
+        <ul>
+          <li><a href="../../index.html">Home</a></li>
+          <li><a href="../internships.html">Internships</a></li>
+          <li><a href="../training-programs.html">Training Programs</a></li>
+          <li><a href="#" onclick="logout()">Logout</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <div class="sidebar">
+    <ul>
+      <li><a href="dashboard.html" class="text-icon">Dashboard</a></li>
+      <li><a href="users.html" class="text-icon">Manage Users</a></li>
+      <li><a href="companies.html" class="text-icon">Manage Companies</a></li>
+      <li><a href="training-centers.html" class="text-icon">Manage Training Centers</a></li>
+      <li><a href="internships.html" class="text-icon">Manage Internships</a></li>
+      <li><a href="training-programs.html" class="text-icon">Manage Training Programs</a></li>
+      <li><a href="trainers.html" class="text-icon">Manage Trainers</a></li>
+      <li><a href="notifications.html" class="text-icon">Send Notifications</a></li>
+    </ul>
+  </div>
+
+  <main>
+    <div class="container">
+      <h2>Manage Training Programs</h2>
+      <div class="training-program-form" id="training-program-form-container">
+        <h3 id="form-title">Edit Training Program</h3>
+        <form id="training-program-form" style="display: none;">
+          <div class="form-group">
+            <label for="title">Title</label>
+            <input type="text" id="title" name="title" required>
+          </div>
+          <div class="form-group">
+            <label for="description">Description</label>
+            <textarea id="description" name="description" required></textarea>
+          </div>
+          <div class="form-group">
+            <label for="duration">Duration (weeks)</label>
+            <input type="number" id="duration" name="duration" required>
+          </div>
+          <div class="form-group">
+            <label for="start_date">Start Date</label>
+            <input type="date" id="start_date" name="start_date" required>
+          </div>
+          <div class="form-group">
+            <label for="end_date">End Date</label>
+            <input type="date" id="end_date" name="end_date" required>
+          </div>
+          <div class="form-group">
+            <label for="training_center_id">Training Center</label>
+            <select id="training_center_id" name="training_center_id" required>
+              <!-- Populated by JavaScript -->
+            </select>
+          </div>
+          <button type="submit">Update Training Program</button>
+          <button type="button" onclick="cancelEdit()">Cancel</button>
+          <div class="error"></div>
+        </form>
+      </div>
+      <h3>Existing Training Programs</h3>
+      <table class="training-program-table">
+        <thead>
+          <tr>
+            <th>Title</th>
+            <th>Duration</th>
+            <th>Start Date</th>
+            <th>End Date</th>
+            <th>Training Center</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="training-program-list">
+          <!-- Populated by JavaScript -->
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>© 2025 TAMKIN. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="../../scripts/api.js"></script>
+  <script src="../../scripts/utils.js"></script>
+  <script src="../../scripts/admin.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      checkAuth();
+      loadTrainingCenters();
+      loadTrainingPrograms();
+    });
+
+    async function loadTrainingCenters() {
+      try {
+        const centers = await apiRequest('/training_centers');
+        const select = document.getElementById('training_center_id');
+        select.innerHTML = centers.map(center => `
+          <option value="${center.id}">${center.name}</option>
+        `).join('');
+      } catch (error) {
+        console.error('Error loading training centers:', error);
+        alert('Failed to load training centers');
+      }
+    }
+
+    async function loadTrainingPrograms() {
+      try {
+        const programs = await apiRequest('/training_programs');
+        const centers = await apiRequest('/training_centers');
+        const centerMap = centers.reduce((map, center) => {
+          map[center.id] = center.name;
+          return map;
+        }, {});
+        const list = document.getElementById('training-program-list');
+        list.innerHTML = programs.map(program => `
+          <tr>
+            <td>${program.title}</td>
+            <td>${program.duration} weeks</td>
+            <td>${program.start_date}</td>
+            <td>${program.end_date}</td>
+            <td>${centerMap[program.training_center_id] || 'N/A'}</td>
+            <td>
+              <button onclick="editTrainingProgram('${program.id}')">Edit</button>
+              <button onclick="deleteTrainingProgram('${program.id}')">Delete</button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (error) {
+        console.error('Error loading training programs:', error);
+        alert('Failed to load training programs');
+      }
+    }
+
+    async function editTrainingProgram(id) {
+      try {
+        const program = await apiRequest(`/training_programs/${id}`);
+        document.getElementById('form-title').textContent = 'Edit Training Program';
+        document.getElementById('title').value = program.title;
+        document.getElementById('description').value = program.description;
+        document.getElementById('duration').value = program.duration;
+        document.getElementById('start_date').value = program.start_date;
+        document.getElementById('end_date').value = program.end_date;
+        document.getElementById('training_center_id').value = program.training_center_id;
+        document.getElementById('training-program-form').dataset.programId = id;
+        document.getElementById('training-program-form').style.display = 'block';
+      } catch (error) {
+        console.error('Error loading training program:', error);
+        alert('Failed to load training program data');
+      }
+    }
+
+    function cancelEdit() {
+      document.getElementById('training-program-form').style.display = 'none';
+      document.getElementById('training-program-form').reset();
+      delete document.getElementById('training-program-form').dataset.programId;
+      document.getElementById('form-title').textContent = 'Edit Training Program';
+    }
+
+    async function deleteTrainingProgram(id) {
+      if (confirm('Are you sure you want to delete this training program?')) {
+        try {
+          await apiRequest(`/training_programs/${id}`, 'DELETE');
+          loadTrainingPrograms();
+        } catch (error) {
+          alert(error.message);
+        }
+      }
+    }
+
+    document.getElementById('training-program-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      const data = Object.fromEntries(formData);
+      const programId = e.target.dataset.programId;
+      try {
+        await apiRequest(`/training_programs/${programId}`, 'PUT', data);
+        alert('Training program updated successfully');
+        cancelEdit();
+        loadTrainingPrograms();
+      } catch (error) {
+        showError(e.target, error.message);
+      }
+    });
+  </script>
+</body>
+</html>

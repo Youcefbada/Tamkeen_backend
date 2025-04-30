@@ -1,0 +1,110 @@
+<!-- pages/user/dashboard.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Dashboard - TAMKIN</title>
+  <link rel="stylesheet" href="../../styles/main.css">
+  <link rel="stylesheet" href="../../styles/dashboard.css">
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1>TAMKIN</h1>
+      <nav>
+        <ul>
+          <li><a href="../../index.html">Home</a></li>
+          <li><a href="../internships.html">Internships</a></li>
+          <li><a href="../training-programs.html">Training Programs</a></li>
+          <li><a href="#" onclick="logout()">Logout</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <div class="sidebar">
+    <ul>
+      <li><a href="dashboard.html" class="text-icon">Dashboard</a></li>
+      <li><a href="profile.html" class="text-icon">Profile</a></li>
+      <li><a href="internship-applications.html" class="text-icon">Internship Applications</a></li>
+      <li><a href="program-applications.html" class="text-icon">Program Applications</a></li>
+      <li><a href="notifications.html" class="text-icon">Notifications</a></li>
+      <li><a href="interests.html" class="text-icon">Interests</a></li>
+    </ul>
+  </div>
+
+  <main>
+    <div class="container">
+      <h2>User Dashboard</h2>
+      <div class="dashboard" id="dashboard-stats">
+        <!-- Stats will be populated by JavaScript -->
+        <div class="card">
+          <h3>Internship Applications</h3>
+          <p id="internship-count">0</p>
+        </div>
+        <div class="card">
+          <h3>Program Applications</h3>
+          <p id="program-count">0</p>
+        </div>
+        <div class="card">
+          <h3>Unread Notifications</h3>
+          <p id="notification-count">0</p>
+        </div>
+        <div class="card">
+          <h3>Interests</h3>
+          <p id="interest-count">0</p>
+        </div>
+      </div>
+      <div class="quick-links">
+        <h3>Quick Links</h3>
+        <ul>
+          <li><a href="profile.html" class="text-icon">Edit Profile</a></li>
+          <li><a href="internship-applications.html" class="text-icon">View Internship Applications</a></li>
+          <li><a href="program-applications.html" class="text-icon">View Program Applications</a></li>
+          <li><a href="notifications.html" class="text-icon">View Notifications</a></li>
+          <li><a href="interests.html" class="text-icon">Manage Interests</a></li>
+          <li><a href="../internships.html" class="text-icon">Browse Internships</a></li>
+          <li><a href="../training-programs.html" class="text-icon">Browse Training Programs</a></li>
+        </ul>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>© 2025 TAMKIN. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="../../scripts/api.js"></script>
+  <script src="../../scripts/utils.js"></script>
+  <script src="../../scripts/user.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      checkAuth(); // Ensure user is logged in
+      loadDashboardStats();
+    });
+
+    async function loadDashboardStats() {
+      try {
+        const userId = localStorage.getItem('userId');
+        const [internships, programs, notifications, interests] = await Promise.all([
+          apiRequest(`/users/${userId}/internship_applications`),
+          apiRequest(`/users/${userId}/program_applications`),
+          apiRequest(`/users/${userId}/notifications`),
+          apiRequest(`/users/${userId}/interests`)
+        ]);
+
+        document.getElementById('internship-count').textContent = internships.length;
+        document.getElementById('program-count').textContent = programs.length;
+        document.getElementById('notification-count').textContent = notifications.filter(n => !n.is_read).length;
+        document.getElementById('interest-count').textContent = interests.length;
+      } catch (error) {
+        console.error('Error loading dashboard stats:', error);
+        alert('Failed to load dashboard data');
+      }
+    }
+  </script>
+</body>
+</html>
