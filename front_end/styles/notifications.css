@@ -1,0 +1,27 @@
+.notification-list {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  
+  .notification-item {
+    background: #fff;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .notification-item.unread {
+    background: #e0e7ff;
+  }
+  
+  .notification-item p {
+    margin: 0;
+  }
+  
+  .notification-item button {
+    padding: 5px 10px;
+  }

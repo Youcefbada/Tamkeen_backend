@@ -1,0 +1,135 @@
+<!-- pages/training-center/applications.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage Applications - TAMKIN</title>
+  <link rel="stylesheet" href="../../styles/main.css">
+  <link rel="stylesheet" href="../../styles/applications.css">
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1>TAMKIN</h1>
+      <nav>
+        <ul>
+          <li><a href="../../index.html">Home</a></li>
+          <li><a href="../internships.html">Internships</a></li>
+          <li><a href="../training-programs.html">Training Programs</a></li>
+          <li><a href="#" onclick="logout()">Logout</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <div class="sidebar">
+    <ul>
+      <li><a href="dashboard.html" class="text-icon">Dashboard</a></li>
+      <li><a href="profile.html" class="text-icon">Profile</a></li>
+      <li><a href="programs.html" class="text-icon">Manage Programs</a></li>
+      <li><a href="applications.html" class="text-icon">View Applications</a></li>
+      <li><a href="trainers.html" class="text-icon">Manage Trainers</a></li>
+    </ul>
+  </div>
+
+  <main>
+    <div class="container">
+      <h2>Manage Applications</h2>
+      <div class="application-filter">
+        <label for="status-filter">Filter by Status:</label>
+        <select id="status-filter" onchange="filterApplications()">
+          <option value="">All</option>
+          <option value="pending">Pending</option>
+          <option value="accepted">Accepted</option>
+          <option value="rejected">Rejected</option>
+        </select>
+      </div>
+      <table class="application-table">
+        <thead>
+          <tr>
+            <th>Applicant Name</th>
+            <th>Program Title</th>
+            <th>Applied Date</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="application-list">
+          <!-- Populated by JavaScript -->
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>© 2025 TAMKIN. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="../../scripts/api.js"></script>
+  <script src="../../scripts/utils.js"></script>
+  <script src="../../scripts/training-center.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      checkAuth();
+      loadApplications();
+    });
+
+    async function loadApplications() {
+      try {
+        const centerId = localStorage.getItem('userId');
+        const applications = await apiRequest(`/training_centers/${centerId}/program_applications`);
+        const users = await apiRequest('/users');
+        const programs = await apiRequest(`/training_centers/${centerId}/training_programs`);
+        const userMap = users.reduce((map, user) => {
+          map[user.id] = user.name;
+          return map;
+        }, {});
+        const programMap = programs.reduce((map, program) => {
+          map[program.id] = program.title;
+          return map;
+        }, {});
+        const list = document.getElementById('application-list');
+        list.innerHTML = applications.map(app => `
+          <tr data-status="${app.status}">
+            <td>${userMap[app.user_id] || 'N/A'}</td>
+            <td>${programMap[app.program_id] || 'N/A'}</td>
+            <td>${app.applied_date}</td>
+            <td>${app.status}</td>
+            <td>
+              ${app.status === 'pending' ? `
+                <button onclick="updateApplicationStatus('${app.id}', 'accepted')">Accept</button>
+                <button onclick="updateApplicationStatus('${app.id}', 'rejected')">Reject</button>
+              ` : ''}
+            </td>
+          </tr>
+        `).join('');
+        filterApplications();
+      } catch (error) {
+        console.error('Error loading applications:', error);
+        alert('Failed to load applications');
+      }
+    }
+
+    async function updateApplicationStatus(id, status) {
+      try {
+        await apiRequest(`/program_applications/${id}`, 'PUT', { status });
+        alert(`Application ${status} successfully`);
+        loadApplications();
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+
+    function filterApplications() {
+      const status = document.getElementById('status-filter').value;
+      const rows = document.querySelectorAll('#application-list tr');
+      rows.forEach(row => {
+        row.style.display = status ? row.dataset.status === status : '';
+      });
+    }
+  </script>
+</body>
+</html>
