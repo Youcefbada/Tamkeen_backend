@@ -1,0 +1,373 @@
+<!-- pages/auth/login.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - TAMKIN</title>
+  <link rel="stylesheet" href="../../styles/main.css">
+  <link rel="stylesheet" href="../../styles/auth.css">
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1>TAMKIN</h1>
+      <nav>
+        <ul>
+          <li><a href="../../index.html">Home</a></li>
+          <li><a href="../internships.html">Internships</a></li>
+          <li><a href="../training-programs.html">Training Programs</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="auth-container">
+      <h2>Login</h2>
+      <form id="login-form">
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" required>
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" required>
+        </div>
+        <div class="form-group">
+          <label for="user-type">User Type</label>
+          <select id="user-type" name="user-type" required>
+            <option value="user">User</option>
+            <option value="company">Company</option>
+            <option value="training_center">Training Center</option>
+            <option value="trainer">Trainer</option>
+          </select>
+        </div>
+        <button type="submit">Login</button>
+        <div class="error"></div>
+      </form>
+      <p>Not registered? <a href="signup-user.html">Sign up</a></p>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>&copy; 2025 TAMKIN. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="../../scripts/api.js"></script>
+  <script src="../../scripts/utils.js"></script>
+  <script src="../../scripts/auth.js"></script>
+</body>
+</html>
+
+<!-- pages/auth/signup-user.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Up - User - TAMKIN</title>
+  <link rel="stylesheet" href="../../styles/main.css">
+  <link rel="stylesheet" href="../../styles/auth.css">
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1>TAMKIN</h1>
+      <nav>
+        <ul>
+          <li><a href="../../index.html">Home</a></li>
+          <li><a href="../internships.html">Internships</a></li>
+          <li><a href="../training-programs.html">Training Programs</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="auth-container">
+      <h2>Sign Up - User</h2>
+      <form class="signup-form" data-user-type="user">
+        <div class="form-group">
+          <label for="first_name">First Name</label>
+          <input type="text" id="first_name" name="first_name" required>
+        </div>
+        <div class="form-group">
+          <label for="last_name">Last Name</label>
+          <input type="text" id="last_name" name="last_name" required>
+        </div>
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" required>
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" required>
+        </div>
+        <div class="form-group">
+          <label for="phone">Phone</label>
+          <input type="tel" id="phone" name="phone" required>
+        </div>
+        <div class="form-group">
+          <label for="nationality">Nationality</label>
+          <input type="text" id="nationality" name="nationality" required>
+        </div>
+        <div class="form-group">
+          <label for="gender">Gender</label>
+          <select id="gender" name="gender" required>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="date_of_birth">Date of Birth</label>
+          <input type="date" id="date_of_birth" name="date_of_birth" required>
+        </div>
+        <button type="submit">Sign Up</button>
+        <div class="error"></div>
+      </form>
+      <p>Already have an account? <a href="login.html">Login</a></p>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>&copy; 2025 TAMKIN. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="../../scripts/api.js"></script>
+  <script src="../../scripts/utils.js"></script>
+  <script src="../../scripts/auth.js"></script>
+</body>
+</html>
+
+<!-- pages/auth/signup-company.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Up - Company - TAMKIN</title>
+  <link rel="stylesheet" href="../../styles/main.css">
+  <link rel="stylesheet" href="../../styles/auth.css">
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1>TAMKIN</h1>
+      <nav>
+        <ul>
+          <li><a href="../../index.html">Home</a></li>
+          <li><a href="../internships.html">Internships</a></li>
+          <li><a href="../training-programs.html">Training Programs</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="auth-container">
+      <h2>Sign Up - Company</h2>
+      <form class="signup-form" data-user-type="company">
+        <div class="form-group">
+          <label for="name">Company Name</label>
+          <input type="text" id="name" name="name" required>
+        </div>
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" required>
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" required>
+        </div>
+        <div class="form-group">
+          <label for="phone">Phone</label>
+          <input type="tel" id="phone" name="phone" required>
+        </div>
+        <div class="form-group">
+          <label for="address">Address</label>
+          <input type="text" id="address" name="address" required>
+        </div>
+        <div class="form-group">
+          <label for="description">Description</label>
+          <textarea id="description" name="description" required></textarea>
+        </div>
+        <button type="submit">Sign Up</button>
+        <div class="error"></div>
+      </form>
+      <p>Already have an account? <a href="login.html">Login</a></p>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>&copy; 2025 TAMKIN. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="../../scripts/api.js"></script>
+  <script src="../../scripts/utils.js"></script>
+  <script src="../../scripts/auth.js"></script>
+</body>
+</html>
+
+<!-- pages/auth/signup-training-center.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Up - Training Center - TAMKIN</title>
+  <link rel="stylesheet" href="../../styles/main.css">
+  <link rel="stylesheet" href="../../styles/auth.css">
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1>TAMKIN</h1>
+      <nav>
+        <ul>
+          <li><a href="../../index.html">Home</a></li>
+          <li><a href="../internships.html">Internships</a></li>
+          <li><a href="../training-programs.html">Training Programs</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="auth-container">
+      <h2>Sign Up - Training Center</h2>
+      <form class="signup-form" data-user-type="training_center">
+        <div class="form-group">
+          <label for="name">Center Name</label>
+          <input type="text" id="name" name="name" required>
+        </div>
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" required>
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" required>
+        </div>
+        <div class="form-group">
+          <label for="phone">Phone</label>
+          <input type="tel" id="phone" name="phone" required>
+        </div>
+        <div class="form-group">
+          <label for="address">Address</label>
+          <input type="text" id="address" name="address" required>
+        </div>
+        <div class="form-group">
+          <label for="description">Description</label>
+          <textarea id="description" name="description" required></textarea>
+        </div>
+        <button type="submit">Sign Up</button>
+        <div class="error"></div>
+      </form>
+      <p>Already have an account? <a href="login.html">Login</a></p>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>&copy; 2025 TAMKIN. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="../../scripts/api.js"></script>
+  <script src="../../scripts/utils.js"></script>
+  <script src="../../scripts/auth.js"></script>
+</body>
+</html>
+
+<!-- pages/auth/signup-trainer.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Up - Trainer - TAMKIN</title>
+  <link rel="stylesheet" href="../../styles/main.css">
+  <link rel="stylesheet" href="../../styles/auth.css">
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1>TAMKIN</h1>
+      <nav>
+        <ul>
+          <li><a href="../../index.html">Home</a></li>
+          <li><a href="../internships.html">Internships</a></li>
+          <li><a href="../training-programs.html">Training Programs</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="auth-container">
+      <h2>Sign Up - Trainer</h2>
+      <form class="signup-form" data-user-type="trainer">
+        <div class="form-group">
+          <label for="first_name">First Name</label>
+          <input type="text" id="first_name" name="first_name" required>
+        </div>
+        <div class="form-group">
+          <label for="last_name">Last Name</label>
+          <input type="text" id="last_name" name="last_name" required>
+        </div>
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" required>
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" required>
+        </div>
+        <div class="form-group">
+          <label for="phone">Phone</label>
+          <input type="tel" id="phone" name="phone" required>
+        </div>
+        <div class="form-group">
+          <label for="nationality">Nationality</label>
+          <input type="text" id="nationality" name="nationality" required>
+        </div>
+        <div class="form-group">
+          <label for="gender">Gender</label>
+          <select id="gender" name="gender" required>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="date_of_birth">Date of Birth</label>
+          <input type="date" id="date_of_birth" name="date_of_birth" required>
+        </div>
+        <div class="form-group">
+          <label for="interests">Interests (comma-separated)</label>
+          <input type="text" id="interests" name="interests" required>
+        </div>
+        <button type="submit">Sign Up</button>
+        <div class="error"></div>
+      </form>
+      <p>Already have an account? <a href="login.html">Login</a></p>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>&copy; 2025 TAMKIN. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="../../scripts/api.js"></script>
+  <script src="../../scripts/utils.js"></script>
+  <script src="../../scripts/auth.js"></script>
+</body>
+</html>
