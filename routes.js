@@ -399,7 +399,6 @@ app.post(
     ) {
       return res.status(400).json({ error: 'All fields are required, including the profile picture file' });
     }
-
     try {
       // Hash the password
       const hashedPassword = await bcrypt.hash(password, 10);

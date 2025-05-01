@@ -10,7 +10,10 @@ CREATE TABLE users (
   phone VARCHAR(500),
   address TEXT,
   user_type VARCHAR(500),
+  level_of_education VARCHAR(500),
   profile_picture VARCHAR(500),
+  cv VARCHAR(500),
+  certificate VARCHAR(500),
   receive_notifications BOOLEAN DEFAULT TRUE,
   notification_type VARCHAR(500),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -118,6 +121,8 @@ CREATE TABLE internship_applications (
   user_id INT NOT NULL,
   internship_id INT NOT NULL,
   education_level VARCHAR(500),
+  cv VARCHAR(500),
+  certificate VARCHAR(500),
   status VARCHAR(500),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -127,6 +132,9 @@ CREATE TABLE program_applications (
   user_id INT NOT NULL,
   training_program_id INT NOT NULL,
   education_level VARCHAR(500),
+  profile_picture VARCHAR(500),
+  cv VARCHAR(500),
+  certificate VARCHAR(500),
   status VARCHAR(500),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
