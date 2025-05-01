@@ -11,7 +11,6 @@ const app = express();
 app.use(cors());
 //mysql://root:TVAOndFQwpcGoaNYVNdknpaZBTWJavpM@ballast.proxy.rlwy.net:18253/tamkeen
 app.use(bodyParser.json());
-import {get_training_centers_name,get_companies_name} from './functions.js'
 const dbConfig = {
   host: process.env.DB_HOST || 'ballast.proxy.rlwy.net',
   user: process.env.DB_USER || 'root',
@@ -23,6 +22,20 @@ const dbConfig = {
   queueLimit: 0
 };
 const pool = mysql.createPool(dbConfig);
+export async function get_training_centers_name(){
+    const [rows] = await pool.query(`
+        Select name
+        from training_centers
+        `);
+    return rows
+}
+export async function get_companies_name(){
+    const [rows] = await pool.query(`
+        Select name
+        from companies
+        `);
+    return rows
+}
 async function testConnection() {
   let connection;
   try {
