@@ -33,6 +33,7 @@ CREATE TABLE companies (
   phone VARCHAR(500),
   address TEXT,
   logo VARCHAR(500),
+  location VARCHAR(500),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

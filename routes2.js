@@ -62,42 +62,108 @@ const verifyToken = (req, res, next) => {
   });
 };
 
-app.post('/loginEmail' , (req, res) => {
+app.post('/loginEmail', async (req, res) => {
   const { email, password } = req.body;
-  try{
-    if (!email || !password) return res.status(400).json({ error: 'Email and password are required' });  
-    pool.query('SELECT * FROM users WHERE email = ?', [email], async (err, results) => {
-      if (err || results.length === 0) return res.status(400).json({ error: 'User not found' });
-      
-      const user = results[0];
-      const isMatch = await bcrypt.compare(password, user.password);
-      if (!isMatch) return res.status(400).json({ error: 'Invalid credentials' });
-      
-      const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET);
-      res.json({ token, user: { name: user.name, email: user.email } });
-    });
-  }catch(err){
-    console.error('Error:', err); 
+  try {
+    if (!email || !password) return res.status(400).json({ error: 'Email and password are required' });
+
+    // Query each table for the email
+    const [users] = await pool.query('SELECT id, first_name, last_name, email, password FROM users WHERE email = ?', [email]);
+    const [companies] = await pool.query('SELECT id, name, email, password FROM companies WHERE email = ?', [email]);
+    const [training_centers] = await pool.query('SELECT id, name, email, password FROM training_centers WHERE email = ?', [email]);
+    const [trainers] = await pool.query('SELECT id, first_name, last_name, email, passsword AS password FROM trainers WHERE email = ?', [email]);
+
+    let user = null;
+    let entity_type = '';
+
+    // Check which table the user was found in
+    if (users.length > 0) {
+      user = users[0];
+      entity_type = 'users';
+    } else if (companies.length > 0) {
+      user = companies[0];
+      entity_type = 'companies';
+    } else if (training_centers.length > 0) {
+      user = training_centers[0];
+      entity_type = 'training_centers';
+    } else if (trainers.length > 0) {
+      user = trainers[0];
+      entity_type = 'trainers';
+    }
+
+    if (!user) return res.status(400).json({ error: 'User not found' });
+
+    // Verify password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(400).json({ error: 'Invalid credentials' });
+
+    // Generate JWT token
+    const token = jwt.sign({ id: user.id, entity_type }, process.env.JWT_SECRET);
+
+    // Prepare user data for response
+    const userData = {
+      id: user.id,
+      email: user.email,
+      name: entity_type === 'users' || entity_type === 'trainers' ? `${user.first_name} ${user.last_name}` : user.name,
+      entity_type
+    };
+
+    res.json({ token, user: userData });
+  } catch (err) {
+    console.error('Error:', err);
     return res.status(500).json({ error: 'Server error' });
   }
 });
 
-app.post('/loginPhone', (req, res) => {
+app.post('/loginPhone', async (req, res) => {
   const { phone, password } = req.body;
-  try{
+  try {
     if (!phone || !password) return res.status(400).json({ error: 'Phone and password are required' });
-    pool.query('SELECT * FROM users WHERE phone = ?', [phone], async (err, results) => {
-      if (err || results.length === 0) return res.status(400).json({ error: 'User not found' });
-      
-      const user = results[0];
-      const isMatch = await bcrypt.compare(password, user.password);
-      if (!isMatch) return res.status(400).json({ error: 'Invalid credentials' });
-      
-      const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET);
-      res.json({ token, user: { name: user.name, phone: user.phone } });
-    });
-  } catch(err){
-    console.error('Error:', err); 
+
+    // Query each table for the phone
+    const [users] = await pool.query('SELECT id, first_name, last_name, phone, password FROM users WHERE phone = ?', [phone]);
+    const [companies] = await pool.query('SELECT id, name, phone, password FROM companies WHERE phone = ?', [phone]);
+    const [training_centers] = await pool.query('SELECT id, name, phone, password FROM training_centers WHERE phone = ?', [phone]);
+    const [trainers] = await pool.query('SELECT id, first_name, last_name, phone, passsword AS password FROM trainers WHERE phone = ?', [phone]);
+
+    let user = null;
+    let entity_type = '';
+
+    // Check which table the user was found in
+    if (users.length > 0) {
+      user = users[0];
+      entity_type = 'users';
+    } else if (companies.length > 0) {
+      user = companies[0];
+      entity_type = 'companies';
+    } else if (training_centers.length > 0) {
+      user = training_centers[0];
+      entity_type = 'training_centers';
+    } else if (trainers.length > 0) {
+      user = trainers[0];
+      entity_type = 'trainers';
+    }
+
+    if (!user) return res.status(400).json({ error: 'User not found' });
+
+    // Verify password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(400).json({ error: 'Invalid credentials' });
+
+    // Generate JWT token
+    const token = jwt.sign({ id: user.id, entity_type }, process.env.JWT_SECRET);
+
+    // Prepare user data for response
+    const userData = {
+      id: user.id,
+      phone: user.phone,
+      name: entity_type === 'users' || entity_type === 'trainers' ? `${user.first_name} ${user.last_name}` : user.name,
+      entity_type
+    };
+
+    res.json({ token, user: userData });
+  } catch (err) {
+    console.error('Error:', err);
     return res.status(500).json({ error: 'Server error' });
   }
 });
