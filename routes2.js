@@ -58,7 +58,8 @@ const verifyToken = (req, res, next) => {
   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
     if (err) return res.status(401).json({ error: 'Invalid token' });
     req.userId = decoded.id;
-    next();
+    req.entity_type = decoded.entity_type;
+    next(); 
   });
 };
 
@@ -98,7 +99,7 @@ app.post('/loginEmail', async (req, res) => {
     if (!isMatch) return res.status(400).json({ error: 'Invalid credentials' });
 
     // Generate JWT token
-    const token = jwt.sign({ id: user.id, entity_type }, process.env.JWT_SECRET);
+    const token = jwt.sign({ id: user.id, entity_type }, process.env.ACCESS_TOKEN_SECRET);
 
     // Prepare user data for response
     const userData = {
@@ -151,7 +152,7 @@ app.post('/loginPhone', async (req, res) => {
     if (!isMatch) return res.status(400).json({ error: 'Invalid credentials' });
 
     // Generate JWT token
-    const token = jwt.sign({ id: user.id, entity_type }, process.env.JWT_SECRET);
+    const token = jwt.sign({ id: user.id, entity_type }, process.env.ACCESS_TOKEN_SECRET);
 
     // Prepare user data for response
     const userData = {
@@ -1047,7 +1048,7 @@ app.put(
 
     try {
       const [existingTrainer] = await pool.query('SELECT id, passsword, profile_picture, cv, certificated FROM trainers WHERE id = ?', [req.params.id]);
-      if (existingTrainer.length === 0) return res.status(404).json({ error: 'Trainer not found' });
+      if (existingTrainer.length > 0) return res.status(404).json({ error: 'Trainer not found' });
 
       const [emailCheck] = await pool.query('SELECT id FROM trainers WHERE email = ? AND id != ?', [email, req.params.id]);
       if (emailCheck.length > 0) return res.status(400).json({ error: 'Email already exists' });
@@ -1158,7 +1159,6 @@ app.get('/internships/:id', verifyToken, async (req, res) => {
 
 app.post('/internships', verifyToken, upload.single('image'), async (req, res) => {
   const {
-    company_id,
     title,
     description,
     category_id,
@@ -1171,11 +1171,17 @@ app.post('/internships', verifyToken, upload.single('image'), async (req, res) =
   } = req.body;
   const file = req.file;
 
-  if (!company_id || !title || !description || !category_id || !type || !mode || !duration || !location || !start_date || !end_date) {
+  if (!title || !description || !category_id || !type || !mode || !duration || !location || !start_date || !end_date) {
     return res.status(400).json({ error: 'All required fields must be provided' });
   }
 
+  if (req.entity_type !== 'companies') {
+    return res.status(403).json({ error: 'Only companies can create internships' });
+  }
+
   try {
+    const company_id = req.userId;
+
     const [existingCompany] = await pool.query('SELECT id FROM companies WHERE id = ?', [company_id]);
     if (existingCompany.length === 0) return res.status(404).json({ error: 'Company not found' });
 
@@ -1220,7 +1226,6 @@ app.post('/internships', verifyToken, upload.single('image'), async (req, res) =
 
 app.put('/internships/:id', verifyToken, upload.single('image'), async (req, res) => {
   const {
-    company_id,
     title,
     description,
     category_id,
@@ -1233,11 +1238,17 @@ app.put('/internships/:id', verifyToken, upload.single('image'), async (req, res
   } = req.body;
   const file = req.file;
 
-  if (!company_id || !title || !description || !category_id || !type || !mode || !duration || !location || !start_date || !end_date) {
+  if (!title || !description || !category_id || !type || !mode || !duration || !location || !start_date || !end_date) {
     return res.status(400).json({ error: 'All required fields must be provided' });
   }
 
+  if (req.entity_type !== 'companies') {
+    return res.status(403).json({ error: 'Only companies can update internships' });
+  }
+
   try {
+    const company_id = req.userId;
+
     const [existingInternship] = await pool.query('SELECT company_id, image FROM internships WHERE id = ?', [req.params.id]);
     if (existingInternship.length === 0) return res.status(404).json({ error: 'Internship not found' });
 
@@ -1346,7 +1357,6 @@ app.get('/training_programs/:id', verifyToken, async (req, res) => {
 
 app.post('/training_programs', verifyToken, upload.single('image'), async (req, res) => {
   const {
-    center_id,
     title,
     description,
     category_id,
@@ -1359,11 +1369,17 @@ app.post('/training_programs', verifyToken, upload.single('image'), async (req, 
   } = req.body;
   const file = req.file;
 
-  if (!center_id || !title || !description || !category_id || !type || !mode || !duration || !location || !start_date || !end_date) {
+  if (!title || !description || !category_id || !type || !mode || !duration || !location || !start_date || !end_date) {
     return res.status(400).json({ error: 'All required fields must be provided' });
   }
 
+  if (req.entity_type !== 'training_centers') {
+    return res.status(403).json({ error: 'Only training centers can create training programs' });
+  }
+
   try {
+    const center_id = req.userId;
+
     const [existingCenter] = await pool.query('SELECT id FROM training_centers WHERE id = ?', [center_id]);
     if (existingCenter.length === 0) return res.status(404).json({ error: 'Training center not found' });
 
@@ -1408,7 +1424,6 @@ app.post('/training_programs', verifyToken, upload.single('image'), async (req, 
 
 app.put('/training_programs/:id', verifyToken, upload.single('image'), async (req, res) => {
   const {
-    center_id,
     title,
     description,
     category_id,
@@ -1421,11 +1436,17 @@ app.put('/training_programs/:id', verifyToken, upload.single('image'), async (re
   } = req.body;
   const file = req.file;
 
-  if (!center_id || !title || !description || !category_id || !type || !mode || !duration || !location || !start_date || !end_date) {
+  if (!title || !description || !category_id || !type || !mode || !duration || !location || !start_date || !end_date) {
     return res.status(400).json({ error: 'All required fields must be provided' });
   }
 
+  if (req.entity_type !== 'training_centers') {
+    return res.status(403).json({ error: 'Only training centers can update training programs' });
+  }
+
   try {
+    const center_id = req.userId;
+
     const [existingProgram] = await pool.query('SELECT center_id, image FROM training_programs WHERE id = ?', [req.params.id]);
     if (existingProgram.length === 0) return res.status(404).json({ error: 'Training program not found' });
 
