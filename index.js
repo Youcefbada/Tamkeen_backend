@@ -9,12 +9,14 @@ import multer from 'multer';
 dotenv.config();
 const app = express();
 app.use(cors());
+//mysql://root:TVAOndFQwpcGoaNYVNdknpaZBTWJavpM@ballast.proxy.rlwy.net:18253/tamkeen
 app.use(bodyParser.json());
 import {get_training_centers_name,get_companies_name} from './functions.js'
 const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
+  host: process.env.DB_HOST || 'ballast.proxy.rlwy.net',
   user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '1234',
+  port: process.env.DB_PORT || 18253,
+  password: process.env.DB_PASSWORD || 'TVAOndFQwpcGoaNYVNdknpaZBTWJavpM',
   database: process.env.DB_NAME || 'tamkeen',
   waitForConnections: true,
   connectionLimit: 10,
