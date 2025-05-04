@@ -9,7 +9,6 @@ import multer from 'multer';
 dotenv.config();
 const app = express();
 app.use(cors());
-//mysql://root:TVAOndFQwpcGoaNYVNdknpaZBTWJavpM@ballast.proxy.rlwy.net:18253/tamkeen
 app.use(bodyParser.json());
 const dbConfig = {
   host: process.env.DB_HOST || 'ballast.proxy.rlwy.net',
@@ -24,15 +23,15 @@ const dbConfig = {
 const pool = mysql.createPool(dbConfig);
 export async function get_training_centers_name(){
     const [rows] = await pool.query(`
-        Select name
-        from training_centers
+        SELECT name
+        FROM training_centers
         `);
     return rows
 }
 export async function get_companies_name(){
     const [rows] = await pool.query(`
-        Select name
-        from companies
+        SELECT name
+        FROM companies
         `);
     return rows
 }
@@ -83,16 +82,14 @@ app.post('/loginEmail', async (req, res) => {
   try {
     if (!email || !password) return res.status(400).json({ error: 'Email and password are required' });
 
-    // Query each table for the email
-    const [users] = await pool.query('SELECT id, first_name, last_name, email, password FROM users WHERE email = ?', [email]);
-    const [companies] = await pool.query('SELECT id, name, email, password FROM companies WHERE email = ?', [email]);
-    const [training_centers] = await pool.query('SELECT id, name, email, password FROM training_centers WHERE email = ?', [email]);
-    const [trainers] = await pool.query('SELECT id, first_name, last_name, email, passsword AS password FROM trainers WHERE email = ?', [email]);
-
     let user = null;
     let entity_type = '';
 
-    // Check which table the user was found in
+    const [users] = await pool.query('SELECT id, first_name, last_name, email, password, phone, address, user_type, level_of_education, profile_picture, cv, certificate, receive_notifications, notification_type FROM users WHERE email = ?', [email]);
+    const [companies] = await pool.query('SELECT id, name, email, password, phone, domain, size, website, wilaya, Commune, numero_commerce, address, location, logo FROM companies WHERE email = ?', [email]);
+    const [training_centers] = await pool.query('SELECT id, name, email, password, phone, address, numero_commerce, type, wilaya, Commune, speciality, website, facebook, instagram, x, linkedin, logo FROM training_centers WHERE email = ?', [email]);
+    const [trainers] = await pool.query('SELECT id, first_name, last_name, email, password, date_of_birth, gender, wilaya, Commune, Street, education_level, other_skill, profile_picture, certificated, cv, phone, specialty FROM trainers WHERE email = ?', [email]);
+
     if (users.length > 0) {
       user = users[0];
       entity_type = 'users';
@@ -109,19 +106,62 @@ app.post('/loginEmail', async (req, res) => {
 
     if (!user) return res.status(400).json({ error: 'User not found' });
 
-    // Verify password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ error: 'Invalid credentials' });
 
-    // Generate JWT token
     const token = jwt.sign({ id: user.id, entity_type }, process.env.ACCESS_TOKEN_SECRET);
 
-    // Prepare user data for response
     const userData = {
       id: user.id,
       email: user.email,
       name: entity_type === 'users' || entity_type === 'trainers' ? `${user.first_name} ${user.last_name}` : user.name,
-      entity_type
+      entity_type,
+      phone: user.phone || '/',
+      address: user.address || '/',
+      profile_picture: user.profile_picture || '/',
+      ...(entity_type === 'users' && {
+        user_type: user.user_type || '/',
+        level_of_education: user.level_of_education || '/',
+        cv: user.cv || '/',
+        certificate: user.certificate || '/',
+        receive_notifications: user.receive_notifications || false,
+        notification_type: user.notification_type || '/'
+      }),
+      ...(entity_type === 'companies' && {
+        domain: user.domain || '/',
+        size: user.size || '/',
+        website: user.website || '/',
+        wilaya: user.wilaya || '/',
+        Commune: user.Commune || '/',
+        numero_commerce: user.numero_commerce || '/',
+        location: user.location || '/',
+        logo: user.logo || '/'
+      }),
+      ...(entity_type === 'training_centers' && {
+        numero_commerce: user.numero_commerce || '/',
+        type: user.type || '/',
+        wilaya: user.wilaya || '/',
+        Commune: user.Commune || '/',
+        speciality: user.speciality || '/',
+        website: user.website || '/',
+        facebook: user.facebook || '/',
+        instagram: user.instagram || '/',
+        x: user.x || '/',
+        linkedin: user.linkedin || '/',
+        logo: user.logo || '/'
+      }),
+      ...(entity_type === 'trainers' && {
+        date_of_birth: user.date_of_birth || '/',
+        gender: user.gender || '/',
+        wilaya: user.wilaya || '/',
+        Commune: user.Commune || '/',
+        Street: user.Street || '/',
+        education_level: user.education_level || '/',
+        other_skill: user.other_skill || '/',
+        certificated: user.certificated || '/',
+        cv: user.cv || '/',
+        specialty: user.specialty || '/'
+      })
     };
 
     res.json({ token, user: userData });
@@ -136,16 +176,14 @@ app.post('/loginPhone', async (req, res) => {
   try {
     if (!phone || !password) return res.status(400).json({ error: 'Phone and password are required' });
 
-    // Query each table for the phone
-    const [users] = await pool.query('SELECT id, first_name, last_name, phone, password FROM users WHERE phone = ?', [phone]);
-    const [companies] = await pool.query('SELECT id, name, phone, password FROM companies WHERE phone = ?', [phone]);
-    const [training_centers] = await pool.query('SELECT id, name, phone, password FROM training_centers WHERE phone = ?', [phone]);
-    const [trainers] = await pool.query('SELECT id, first_name, last_name, phone, passsword AS password FROM trainers WHERE phone = ?', [phone]);
-
     let user = null;
     let entity_type = '';
 
-    // Check which table the user was found in
+    const [users] = await pool.query('SELECT id, first_name, last_name, phone, password, email, address, user_type, level_of_education, profile_picture, cv, certificate, receive_notifications, notification_type FROM users WHERE phone = ?', [phone]);
+    const [companies] = await pool.query('SELECT id, name, phone, password, email, domain, size, website, wilaya, Commune, numero_commerce, address, location, logo FROM companies WHERE phone = ?', [phone]);
+    const [training_centers] = await pool.query('SELECT id, name, phone, password, email, address, numero_commerce, type, wilaya, Commune, speciality, website, facebook, instagram, x, linkedin, logo FROM training_centers WHERE phone = ?', [phone]);
+    const [trainers] = await pool.query('SELECT id, first_name, last_name, phone, password, email, date_of_birth, gender, wilaya, Commune, Street, education_level, other_skill, profile_picture, certificated, cv, specialty FROM trainers WHERE phone = ?', [phone]);
+
     if (users.length > 0) {
       user = users[0];
       entity_type = 'users';
@@ -162,19 +200,62 @@ app.post('/loginPhone', async (req, res) => {
 
     if (!user) return res.status(400).json({ error: 'User not found' });
 
-    // Verify password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ error: 'Invalid credentials' });
 
-    // Generate JWT token
     const token = jwt.sign({ id: user.id, entity_type }, process.env.ACCESS_TOKEN_SECRET);
 
-    // Prepare user data for response
     const userData = {
       id: user.id,
       phone: user.phone,
       name: entity_type === 'users' || entity_type === 'trainers' ? `${user.first_name} ${user.last_name}` : user.name,
-      entity_type
+      entity_type,
+      email: user.email || '/',
+      address: user.address || '/',
+      profile_picture: user.profile_picture || '/',
+      ...(entity_type === 'users' && {
+        user_type: user.user_type || '/',
+        level_of_education: user.level_of_education || '/',
+        cv: user.cv || '/',
+        certificate: user.certificate || '/',
+        receive_notifications: user.receive_notifications || false,
+        notification_type: user.notification_type || '/'
+      }),
+      ...(entity_type === 'companies' && {
+        domain: user.domain || '/',
+        size: user.size || '/',
+        website: user.website || '/',
+        wilaya: user.wilaya || '/',
+        Commune: user.Commune || '/',
+        numero_commerce: user.numero_commerce || '/',
+        location: user.location || '/',
+        logo: user.logo || '/'
+      }),
+      ...(entity_type === 'training_centers' && {
+        numero_commerce: user.numero_commerce || '/',
+        type: user.type || '/',
+        wilaya: user.wilaya || '/',
+        Commune: user.Commune || '/',
+        speciality: user.speciality || '/',
+        website: user.website || '/',
+        facebook: user.facebook || '/',
+        instagram: user.instagram || '/',
+        x: user.x || '/',
+        linkedin: user.linkedin || '/',
+        logo: user.logo || '/'
+      }),
+      ...(entity_type === 'trainers' && {
+        date_of_birth: user.date_of_birth || '/',
+        gender: user.gender || '/',
+        wilaya: user.wilaya || '/',
+        Commune: user.Commune || '/',
+        Street: user.Street || '/',
+        education_level: user.education_level || '/',
+        other_skill: user.other_skill || '/',
+        certificated: user.certificated || '/',
+        cv: user.cv || '/',
+        specialty: user.specialty || '/'
+      })
     };
 
     res.json({ token, user: userData });
@@ -193,62 +274,40 @@ app.post(
   ]),
   async (req, res) => {
     const {
-      first_name,
-      last_name,
-      email,
-      date_of_birth,
-      gender,
-      wilaya,
-      Commune,
-      Street,
-      education_level,
-      interests,
-      other_skill,
-      phone,
-      specialty,
-      password,
+      first_name = '/',
+      last_name = '/',
+      email = '/',
+      date_of_birth = '/',
+      gender = '/',
+      wilaya = '/',
+      Commune = '/',
+      Street = '/',
+      education_level = '/',
+      other_skill = '/',
+      phone = '/',
+      specialty = '/',
+      password = '/'
     } = req.body;
 
     const files = req.files;
 
-    if (
-      !first_name ||
-      !last_name ||
-      !email ||
-      !date_of_birth ||
-      !gender ||
-      !wilaya ||
-      !Commune ||
-      !Street ||
-      !education_level ||
-      !interests ||
-      !phone ||
-      !specialty ||
-      !password ||
-      !files.cv ||
-      !files.certificated ||
-      !files.profile_picture
-    ) {
-      return res.status(400).json({ error: 'All fields are required, including files' });
-    }
-
     try {
-      const hashedPassword = await bcrypt.hash(password, 10);
+      const hashedPassword = password !== '/' ? await bcrypt.hash(password, 10) : '/';
 
-      const [existingTrainer] = await pool.query('SELECT * FROM trainers WHERE email = ?', [email]);
+      const [existingTrainer] = await pool.query('SELECT * FROM trainers WHERE email = ? AND email != ?', [email, '/']);
       if (existingTrainer.length > 0) {
         return res.status(400).json({ error: 'Email already exists' });
       }
 
-      const cvPath = files.cv[0].path;
-      const certificatedPath = files.certificated[0].path;
-      const profilePicturePath = files.profile_picture[0].path;
+      const cvPath = files.cv ? files.cv[0].path : '/';
+      const certificatedPath = files.certificated ? files.certificated[0].path : '/';
+      const profilePicturePath = files.profile_picture ? files.profile_picture[0].path : '/';
 
       await pool.query(
         `INSERT INTO trainers 
         (first_name, last_name, email, date_of_birth, gender, wilaya, Commune, Street, 
-        education_level, interests, other_skill, profile_picture, certificated, cv, phone, specialty, passsword, created_at) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+        education_level, other_skill, profile_picture, certificated, cv, phone, specialty, password, created_at) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
         [
           first_name,
           last_name,
@@ -259,7 +318,6 @@ app.post(
           Commune,
           Street,
           education_level,
-          interests,
           other_skill,
           profilePicturePath,
           certificatedPath,
@@ -283,50 +341,33 @@ app.post(
   upload.single('logo'),
   async (req, res) => {
     const {
-      name,
-      email,
-      password,
-      phone,
-      address,
-      numero_commerce,
-      type,
-      wilaya,
-      Commune,
-      speciality,
-      website,
-      facebook,
-      instagram,
-      x,
-      linkedin,
+      name = '/',
+      email = '/',
+      password = '/',
+      phone = '/',
+      address = '/',
+      numero_commerce = '/',
+      type = '/',
+      wilaya = '/',
+      Commune = '/',
+      speciality = '/',
+      website = '/',
+      facebook = '/',
+      instagram = '/',
+      x = '/',
+      linkedin = '/'
     } = req.body;
     const file = req.file;
 
-    if (
-      !name ||
-      !email ||
-      !password ||
-      !phone ||
-      !address ||
-      !numero_commerce ||
-      !type ||
-      !wilaya ||
-      !Commune ||
-      !speciality ||
-      !website ||
-      !file
-    ) {
-      return res.status(400).json({ error: 'All fields are required, including the logo file' });
-    }
-
     try {
-      const hashedPassword = await bcrypt.hash(password, 10);
+      const hashedPassword = password !== '/' ? await bcrypt.hash(password, 10) : '/';
 
-      const [existingCenter] = await pool.query('SELECT * FROM training_centers WHERE email = ?', [email]);
+      const [existingCenter] = await pool.query('SELECT * FROM training_centers WHERE email = ? AND email != ?', [email, '/']);
       if (existingCenter.length > 0) {
         return res.status(400).json({ error: 'Email already exists' });
       }
 
-      const logoPath = file.path;
+      const logoPath = file ? file.path : '/';
 
       await pool.query(
         `INSERT INTO training_centers 
@@ -365,48 +406,30 @@ app.post(
   upload.single('logo'),
   async (req, res) => {
     const {
-      name,
-      email,
-      password,
-      phone,
-      domain,
-      size,
-      website,
-      wilaya,
-      Commune,
-      numero_commerce,
-      address,
-      location,
+      name = '/',
+      email = '/',
+      password = '/',
+      phone = '/',
+      domain = '/',
+      size = '/',
+      website = '/',
+      wilaya = '/',
+      Commune = '/',
+      numero_commerce = '/',
+      address = '/',
+      location = '/'
     } = req.body;
     const file = req.file;
 
-    if (
-      !name ||
-      !email ||
-      !password ||
-      !phone ||
-      !domain ||
-      !size ||
-      !website ||
-      !wilaya ||
-      !Commune ||
-      !numero_commerce ||
-      !address ||
-      !location ||
-      !file
-    ) {
-      return res.status(400).json({ error: 'All fields are required, including the logo file' });
-    }
-
     try {
-      const hashedPassword = await bcrypt.hash(password, 10);
+      const hashedPassword = password !== '/' ? await bcrypt.hash(password, 10) : '/';
 
-      const [existingCompany] = await pool.query('SELECT * FROM companies WHERE email = ?', [email]);
+      const [existingCompany] = await pool.query('SELECT * FROM companies WHERE email = ? AND email != ?', [email, '/']);
       if (existingCompany.length > 0) {
         return res.status(400).json({ error: 'Email already exists' });
       }
 
-      const logoPath = file.path;
+      const logoPath = file ? file.path : '/';
 
       await pool.query(
         `INSERT INTO companies 
@@ -446,45 +469,30 @@ app.post(
   ]),
   async (req, res) => {
     const {
-      first_name,
-      last_name,
-      email,
-      password,
-      phone,
-      address,
-      user_type,
-      level_of_education,
-      receive_notifications,
-      notification_type,
+      first_name = '/',
+      last_name = '/',
+      email = '/',
+      password = '/',
+      phone = '/',
+      address = '/',
+      user_type = '/',
+      level_of_education = '/',
+      receive_notifications = false,
+      notification_type = '/'
     } = req.body;
     const files = req.files;
 
-    if (
-      !first_name ||
-      !last_name ||
-      !email ||
-      !password ||
-      !phone ||
-      !address ||
-      !user_type ||
-      !level_of_education ||
-      !files.profile_picture ||
-      !files.cv ||
-      !files.certificate
-    ) {
-      return res.status(400).json({ error: 'All fields are required, including profile picture, CV, and certificate files' });
-    }
     try {
-      const hashedPassword = await bcrypt.hash(password, 10);
+      const hashedPassword = password !== '/' ? await bcrypt.hash(password, 10) : '/';
 
-      const [existingUser] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
+      const [existingUser] = await pool.query('SELECT * FROM users WHERE email = ? AND email != ?', [email, '/']);
       if (existingUser.length > 0) {
         return res.status(400).json({ error: 'Email already exists' });
       }
 
-      const profilePicturePath = files.profile_picture[0].path;
-      const cvPath = files.cv[0].path;
-      const certificatePath = files.certificate[0].path;
+      const profilePicturePath = files.profile_picture ? files.profile_picture[0].path : '/';
+      const cvPath = files.cv ? files.cv[0].path : '/';
+      const certificatePath = files.certificate ? files.certificate[0].path : '/';
 
       await pool.query(
         `INSERT INTO users 
@@ -533,28 +541,24 @@ app.put('/users/:id', verifyToken, upload.fields([
   { name: 'certificate', maxCount: 1 },
 ]), async (req, res) => {
   const {
-    first_name,
-    last_name,
-    email,
-    password,
-    phone,
-    address,
-    user_type,
-    level_of_education,
-    receive_notifications,
-    notification_type
+    first_name = '/',
+    last_name = '/',
+    email = '/',
+    password = '/',
+    phone = '/',
+    address = '/',
+    user_type = '/',
+    level_of_education = '/',
+    receive_notifications = false,
+    notification_type = '/'
   } = req.body;
   const files = req.files;
-
-  if (!first_name || !last_name || !email || !phone || !address || !user_type || !level_of_education) {
-    return res.status(400).json({ error: 'Required fields are missing' });
-  }
 
   try {
     const [existingUser] = await pool.query('SELECT id, password, profile_picture, cv, certificate FROM users WHERE id = ?', [req.params.id]);
     if (existingUser.length === 0) return res.status(404).json({ error: 'User not found' });
 
-    const [emailCheck] = await pool.query('SELECT id FROM users WHERE email = ? AND id != ?', [email, req.params.id]);
+    const [emailCheck] = await pool.query('SELECT id FROM users WHERE email = ? AND id != ? AND email != ?', [email, req.params.id, '/']);
     if (emailCheck.length > 0) return res.status(400).json({ error: 'Email already exists' });
 
     const updateData = {
@@ -566,17 +570,13 @@ app.put('/users/:id', verifyToken, upload.fields([
       user_type,
       level_of_education,
       receive_notifications: receive_notifications === 'true',
-      notification_type: notification_type || null,
-      profile_picture: files.profile_picture ? files.profile_picture[0].path : existingUser[0].profile_picture,
-      cv: files.cv ? files.cv[0].path : existingUser[0].cv,
-      certificate: files.certificate ? files.certificate[0].path : existingUser[0].certificate
+      notification_type: notification_type || '/',
+      profile_picture: files.profile_picture ? files.profile_picture[0].path : existingUser[0].profile_picture || '/',
+      cv: files.cv ? files.cv[0].path : existingUser[0].cv || '/',
+      certificate: files.certificate ? files.certificate[0].path : existingUser[0].certificate || '/'
     };
 
-    if (password) {
-      updateData.password = await bcrypt.hash(password, 10);
-    } else {
-      updateData.password = existingUser[0].password;
-    }
+    updateData.password = password !== '/' ? await bcrypt.hash(password, 10) : existingUser[0].password;
 
     await pool.query(
       `UPDATE users SET 
@@ -617,80 +617,6 @@ app.delete('/users/:id', verifyToken, async (req, res) => {
     await pool.query('DELETE FROM users WHERE id = ?', [req.params.id]);
 
     res.json({ message: 'User deleted successfully' });
-  } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-app.get('/users/:id/interests', verifyToken, async (req, res) => {
-  try {
-    const [results] = await pool.query(
-      `SELECT i.id, i.name 
-       FROM interests i
-       JOIN user_interests ui ON i.id = ui.interest_id
-       WHERE ui.user_id = ?`,
-      [req.params.id]
-    );
-    if (results.length === 0) return res.status(404).json({ error: 'No interests found for this user' });
-
-    res.json(results);
-  } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-app.post('/users/:id/interests', verifyToken, async (req, res) => {
-  const { interest_id } = req.body;
-
-  if (!interest_id) return res.status(400).json({ error: 'Interest ID is required' });
-
-  try {
-    const [existingUser] = await pool.query('SELECT id FROM users WHERE id = ?', [req.params.id]);
-    if (existingUser.length === 0) return res.status(404).json({ error: 'User not found' });
-
-    const [existingInterest] = await pool.query('SELECT id FROM interests WHERE id = ?', [interest_id]);
-    if (existingInterest.length === 0) return res.status(404).json({ error: 'Interest not found' });
-
-    const [existingUserInterest] = await pool.query(
-      'SELECT id FROM user_interests WHERE user_id = ? AND interest_id = ?',
-      [req.params.id, interest_id]
-    );
-    if (existingUserInterest.length > 0) return res.status(400).json({ error: 'Interest already added for this user' });
-
-    await pool.query(
-      'INSERT INTO user_interests (user_id, interest_id) VALUES (?, ?)',
-      [req.params.id, interest_id]
-    );
-
-    res.json({ message: 'Interest added successfully' });
-  } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-app.delete('/users/:id/interests/:interestId', verifyToken, async (req, res) => {
-  try {
-    const [existingUser] = await pool.query('SELECT id FROM users WHERE id = ?', [req.params.id]);
-    if (existingUser.length === 0) return res.status(404).json({ error: 'User not found' });
-
-    const [existingInterest] = await pool.query('SELECT id FROM interests WHERE id = ?', [req.params.interestId]);
-    if (existingInterest.length === 0) return res.status(404).json({ error: 'Interest not found' });
-
-    const [existingUserInterest] = await pool.query(
-      'SELECT id FROM user_interests WHERE user_id = ? AND interest_id = ?',
-      [req.params.id, req.params.interestId]
-    );
-    if (existingUserInterest.length === 0) return res.status(404).json({ error: 'Interest not found for this user' });
-
-    await pool.query(
-      'DELETE FROM user_interests WHERE user_id = ? AND interest_id = ?',
-      [req.params.id, req.params.interestId]
-    );
-
-    res.json({ message: 'Interest removed successfully' });
   } catch (error) {
     console.error('Error:', error);
     res.status(500).json({ error: 'Server error' });
@@ -742,29 +668,25 @@ app.get('/companies/:id', verifyToken, async (req, res) => {
 
 app.put('/companies/:id', verifyToken, upload.single('logo'), async (req, res) => {
   const {
-    name,
-    email,
-    password,
-    domain,
-    size,
-    website,
-    wilaya,
-    Commune,
-    numero_commerce,
-    phone,
-    address
+    name = '/',
+    email = '/',
+    password = '/',
+    domain = '/',
+    size = '/',
+    website = '/',
+    wilaya = '/',
+    Commune = '/',
+    numero_commerce = '/',
+    phone = '/',
+    address = '/'
   } = req.body;
   const file = req.file;
-
-  if (!name || !email || !domain || !size || !website || !wilaya || !Commune || !numero_commerce || !phone || !address) {
-    return res.status(400).json({ error: 'All required fields must be provided' });
-  }
 
   try {
     const [existingCompany] = await pool.query('SELECT id, password, logo FROM companies WHERE id = ?', [req.params.id]);
     if (existingCompany.length === 0) return res.status(404).json({ error: 'Company not found' });
 
-    const [emailCheck] = await pool.query('SELECT id FROM companies WHERE email = ? AND id != ?', [email, req.params.id]);
+    const [emailCheck] = await pool.query('SELECT id FROM companies WHERE email = ? AND id != ? AND email != ?', [email, req.params.id, '/']);
     if (emailCheck.length > 0) return res.status(400).json({ error: 'Email already exists' });
 
     const updateData = {
@@ -777,20 +699,11 @@ app.put('/companies/:id', verifyToken, upload.single('logo'), async (req, res) =
       Commune,
       numero_commerce,
       phone,
-      address
+      address,
+      logo: file ? file.path : existingCompany[0].logo || '/'
     };
 
-    if (password) {
-      updateData.password = await bcrypt.hash(password, 10);
-    } else {
-      updateData.password = existingCompany[0].password;
-    }
-
-    if (file) {
-      updateData.logo = file.path;
-    } else {
-      updateData.logo = existingCompany[0].logo;
-    }
+    updateData.password = password !== '/' ? await bcrypt.hash(password, 10) : existingCompany[0].password;
 
     await pool.query(
       `UPDATE companies SET 
@@ -848,7 +761,7 @@ app.get('/get_companies_name', verifyToken, async (req, res) => {
 app.get('/training_centers', verifyToken, async (req, res) => {
   try {
     const [results] = await pool.query(
-      'SELECT id, name, email, phone, numero_commerce, type, wilaya, Commune, speciality, website, facebook, instagram, X, linkedin, address, logo, created_at FROM training_centers'
+      'SELECT id, name, email, phone, numero_commerce, type, wilaya, Commune, speciality, website, facebook, instagram, x, linkedin, address, logo, created_at FROM training_centers'
     );
     res.json(results);
   } catch (error) {
@@ -860,7 +773,7 @@ app.get('/training_centers', verifyToken, async (req, res) => {
 app.get('/training_centers/:id', verifyToken, async (req, res) => {
   try {
     const [results] = await pool.query(
-      'SELECT id, name, email, phone, numero_commerce, type, wilaya, Commune, speciality, website, facebook, instagram, X, linkedin, address, logo, created_at FROM training_centers WHERE id = ?',
+      'SELECT id, name, email, phone, numero_commerce, type, wilaya, Commune, speciality, website, facebook, instagram, x, linkedin, address, logo, created_at FROM training_centers WHERE id = ?',
       [req.params.id]
     );
     if (results.length === 0) return res.status(404).json({ error: 'Training center not found' });
@@ -874,33 +787,29 @@ app.get('/training_centers/:id', verifyToken, async (req, res) => {
 
 app.put('/training_centers/:id', verifyToken, upload.single('logo'), async (req, res) => {
   const {
-    name,
-    email,
-    password,
-    phone,
-    numero_commerce,
-    type,
-    wilaya,
-    Commune,
-    speciality,
-    website,
-    facebook,
-    instagram,
-    X,
-    linkedin,
-    address
+    name = '/',
+    email = '/',
+    password = '/',
+    phone = '/',
+    numero_commerce = '/',
+    type = '/',
+    wilaya = '/',
+    Commune = '/',
+    speciality = '/',
+    website = '/',
+    facebook = '/',
+    instagram = '/',
+    x = '/',
+    linkedin = '/',
+    address = '/'
   } = req.body;
   const file = req.file;
-
-  if (!name || !email || !phone || !numero_commerce || !type || !wilaya || !Commune || !speciality || !website || !address) {
-    return res.status(400).json({ error: 'All required fields must be provided' });
-  }
 
   try {
     const [existingCenter] = await pool.query('SELECT id, password, logo FROM training_centers WHERE id = ?', [req.params.id]);
     if (existingCenter.length === 0) return res.status(404).json({ error: 'Training center not found' });
 
-    const [emailCheck] = await pool.query('SELECT id FROM training_centers WHERE email = ? AND id != ?', [email, req.params.id]);
+    const [emailCheck] = await pool.query('SELECT id FROM training_centers WHERE email = ? AND id != ? AND email != ?', [email, req.params.id, '/']);
     if (emailCheck.length > 0) return res.status(400).json({ error: 'Email already exists' });
 
     const updateData = {
@@ -913,30 +822,21 @@ app.put('/training_centers/:id', verifyToken, upload.single('logo'), async (req,
       Commune,
       speciality,
       website,
-      facebook: facebook || null,
-      instagram: instagram || null,
-      X: X || null,
-      linkedin: linkedin || null,
-      address
+      facebook: facebook || '/',
+      instagram: instagram || '/',
+      x: x || '/',
+      linkedin: linkedin || '/',
+      address,
+      logo: file ? file.path : existingCenter[0].logo || '/'
     };
 
-    if (password) {
-      updateData.password = await bcrypt.hash(password, 10);
-    } else {
-      updateData.password = existingCenter[0].password;
-    }
-
-    if (file) {
-      updateData.logo = file.path;
-    } else {
-      updateData.logo = existingCenter[0].logo;
-    }
+    updateData.password = password !== '/' ? await bcrypt.hash(password, 10) : existingCenter[0].password;
 
     await pool.query(
       `UPDATE training_centers SET 
         name = ?, email = ?, password = ?, phone = ?, numero_commerce = ?, type = ?, 
         wilaya = ?, Commune = ?, speciality = ?, website = ?, facebook = ?, instagram = ?, 
-        X = ?, linkedin = ?, address = ?, logo = ?
+        x = ?, linkedin = ?, address = ?, logo = ?
        WHERE id = ?`,
       [
         updateData.name,
@@ -951,7 +851,7 @@ app.put('/training_centers/:id', verifyToken, upload.single('logo'), async (req,
         updateData.website,
         updateData.facebook,
         updateData.instagram,
-        updateData.X,
+        updateData.x,
         updateData.linkedin,
         updateData.address,
         updateData.logo,
@@ -993,7 +893,7 @@ app.get('/get_training_centers_name', verifyToken, async (req, res) => {
 app.get('/trainers', verifyToken, async (req, res) => {
   try {
     const [results] = await pool.query(
-      'SELECT id, first_name, last_name, email, date_of_birth, gender, wilaya, Commune, Street, education_level, interests, other_skill, profile_picture, certificated, cv, phone, specialty, created_at FROM trainers'
+      'SELECT id, first_name, last_name, email, date_of_birth, gender, wilaya, Commune, Street, education_level, other_skill, profile_picture, certificated, cv, phone, specialty, created_at FROM trainers'
     );
     res.json(results);
   } catch (error) {
@@ -1005,7 +905,7 @@ app.get('/trainers', verifyToken, async (req, res) => {
 app.get('/trainers/:id', verifyToken, async (req, res) => {
   try {
     const [results] = await pool.query(
-      'SELECT id, first_name, last_name, email, date_of_birth, gender, wilaya, Commune, Street, education_level, interests, other_skill, profile_picture, certificated, cv, phone, specialty, created_at FROM trainers WHERE id = ?',
+      'SELECT id, first_name, last_name, email, date_of_birth, gender, wilaya, Commune, Street, education_level, other_skill, profile_picture, certificated, cv, phone, specialty, created_at FROM trainers WHERE id = ?',
       [req.params.id]
     );
     if (results.length === 0) return res.status(404).json({ error: 'Trainer not found' });
@@ -1027,45 +927,27 @@ app.put(
   ]),
   async (req, res) => {
     const {
-      first_name,
-      last_name,
-      email,
-      date_of_birth,
-      gender,
-      wilaya,
-      Commune,
-      Street,
-      education_level,
-      interests,
-      other_skill,
-      phone,
-      specialty,
-      password
+      first_name = '/',
+      last_name = '/',
+      email = '/',
+      date_of_birth = '/',
+      gender = '/',
+      wilaya = '/',
+      Commune = '/',
+      Street = '/',
+      education_level = '/',
+      other_skill = '/',
+      phone = '/',
+      specialty = '/',
+      password = '/'
     } = req.body;
     const files = req.files;
 
-    if (
-      !first_name ||
-      !last_name ||
-      !email ||
-      !date_of_birth ||
-      !gender ||
-      !wilaya ||
-      !Commune ||
-      !Street ||
-      !education_level ||
-      !interests ||
-      !phone ||
-      !specialty
-    ) {
-      return res.status(400).json({ error: 'All required fields must be provided' });
-    }
-
     try {
-      const [existingTrainer] = await pool.query('SELECT id, passsword, profile_picture, cv, certificated FROM trainers WHERE id = ?', [req.params.id]);
-      if (existingTrainer.length > 0) return res.status(404).json({ error: 'Trainer not found' });
+      const [existingTrainer] = await pool.query('SELECT id, password, profile_picture, cv, certificated FROM trainers WHERE id = ?', [req.params.id]);
+      if (existingTrainer.length === 0) return res.status(404).json({ error: 'Trainer not found' });
 
-      const [emailCheck] = await pool.query('SELECT id FROM trainers WHERE email = ? AND id != ?', [email, req.params.id]);
+      const [emailCheck] = await pool.query('SELECT id FROM trainers WHERE email = ? AND id != ? AND email != ?', [email, req.params.id, '/']);
       if (emailCheck.length > 0) return res.status(400).json({ error: 'Email already exists' });
 
       const updateData = {
@@ -1078,28 +960,21 @@ app.put(
         Commune,
         Street,
         education_level,
-        interests,
-        other_skill: other_skill || null,
+        other_skill: other_skill || '/',
         phone,
-        specialty
+        specialty,
+        profile_picture: files.profile_picture ? files.profile_picture[0].path : existingTrainer[0].profile_picture || '/',
+        cv: files.cv ? files.cv[0].path : existingTrainer[0].cv || '/',
+        certificated: files.certificated ? files.certificated[0].path : existingTrainer[0].certificated || '/'
       };
 
-      if (password) {
-        updateData.password = await bcrypt.hash(password, 10);
-      } else {
-        updateData.password = existingTrainer[0].passsword;
-      }
-
-      updateData.profile_picture = files.profile_picture ? files.profile_picture[0].path : existingTrainer[0].profile_picture;
-      updateData.cv = files.cv ? files.cv[0].path : existingTrainer[0].cv;
-      updateData.certificated = files.certificated ? files.certificated[0].path : existingTrainer[0].certificated;
+      updateData.password = password !== '/' ? await bcrypt.hash(password, 10) : existingTrainer[0].password;
 
       await pool.query(
         `UPDATE trainers SET 
           first_name = ?, last_name = ?, email = ?, date_of_birth = ?, gender = ?, 
-          wilaya = ?, Commune = ?, Street = ?, education_level = ?, interests = ?, 
-          other_skill = ?, profile_picture = ?, certificated = ?, cv = ?, phone = ?, 
-          specialty = ?, passsword = ?
+          wilaya = ?, Commune = ?, Street = ?, education_level = ?, other_skill = ?, 
+          profile_picture = ?, certificated = ?, cv = ?, phone = ?, specialty = ?, password = ?
          WHERE id = ?`,
         [
           updateData.first_name,
@@ -1111,7 +986,6 @@ app.put(
           updateData.Commune,
           updateData.Street,
           updateData.education_level,
-          updateData.interests,
           updateData.other_skill,
           updateData.profile_picture,
           updateData.certificated,
@@ -1174,21 +1048,17 @@ app.get('/internships/:id', verifyToken, async (req, res) => {
 
 app.post('/internships', verifyToken, upload.single('image'), async (req, res) => {
   const {
-    title,
-    description,
-    category_id,
-    type,
-    mode,
-    duration,
-    location,
-    start_date,
-    end_date
+    title = '/',
+    description = '/',
+    category_id = '/',
+    type = '/',
+    mode = '/',
+    duration = '/',
+    location = '/',
+    start_date = '/',
+    end_date = '/'
   } = req.body;
   const file = req.file;
-
-  if (!title || !description || !category_id || !type || !mode || !duration || !location || !start_date || !end_date) {
-    return res.status(400).json({ error: 'All required fields must be provided' });
-  }
 
   if (req.entity_type !== 'companies') {
     return res.status(403).json({ error: 'Only companies can create internships' });
@@ -1211,7 +1081,7 @@ app.post('/internships', verifyToken, upload.single('image'), async (req, res) =
       location,
       start_date,
       end_date,
-      image: file ? file.path : null
+      image: file ? file.path : '/'
     };
 
     const [result] = await pool.query(
@@ -1241,21 +1111,17 @@ app.post('/internships', verifyToken, upload.single('image'), async (req, res) =
 
 app.put('/internships/:id', verifyToken, upload.single('image'), async (req, res) => {
   const {
-    title,
-    description,
-    category_id,
-    type,
-    mode,
-    duration,
-    location,
-    start_date,
-    end_date
+    title = '/',
+    description = '/',
+    category_id = '/',
+    type = '/',
+    mode = '/',
+    duration = '/',
+    location = '/',
+    start_date = '/',
+    end_date = '/'
   } = req.body;
   const file = req.file;
-
-  if (!title || !description || !category_id || !type || !mode || !duration || !location || !start_date || !end_date) {
-    return res.status(400).json({ error: 'All required fields must be provided' });
-  }
 
   if (req.entity_type !== 'companies') {
     return res.status(403).json({ error: 'Only companies can update internships' });
@@ -1281,7 +1147,7 @@ app.put('/internships/:id', verifyToken, upload.single('image'), async (req, res
       location,
       start_date,
       end_date,
-      image: file ? file.path : existingInternship[0].image
+      image: file ? file.path : existingInternship[0].image || '/'
     };
 
     await pool.query(
@@ -1372,21 +1238,17 @@ app.get('/training_programs/:id', verifyToken, async (req, res) => {
 
 app.post('/training_programs', verifyToken, upload.single('image'), async (req, res) => {
   const {
-    title,
-    description,
-    category_id,
-    type,
-    mode,
-    duration,
-    location,
-    start_date,
-    end_date
+    title = '/',
+    description = '/',
+    category_id = '/',
+    type = '/',
+    mode = '/',
+    duration = '/',
+    location = '/',
+    start_date = '/',
+    end_date = '/'
   } = req.body;
   const file = req.file;
-
-  if (!title || !description || !category_id || !type || !mode || !duration || !location || !start_date || !end_date) {
-    return res.status(400).json({ error: 'All required fields must be provided' });
-  }
 
   if (req.entity_type !== 'training_centers') {
     return res.status(403).json({ error: 'Only training centers can create training programs' });
@@ -1409,7 +1271,7 @@ app.post('/training_programs', verifyToken, upload.single('image'), async (req, 
       location,
       start_date,
       end_date,
-      image: file ? file.path : null
+      image: file ? file.path : '/'
     };
 
     const [result] = await pool.query(
@@ -1439,21 +1301,17 @@ app.post('/training_programs', verifyToken, upload.single('image'), async (req, 
 
 app.put('/training_programs/:id', verifyToken, upload.single('image'), async (req, res) => {
   const {
-    title,
-    description,
-    category_id,
-    type,
-    mode,
-    duration,
-    location,
-    start_date,
-    end_date
+    title = '/',
+    description = '/',
+    category_id = '/',
+    type = '/',
+    mode = '/',
+    duration = '/',
+    location = '/',
+    start_date = '/',
+    end_date = '/'
   } = req.body;
   const file = req.file;
-
-  if (!title || !description || !category_id || !type || !mode || !duration || !location || !start_date || !end_date) {
-    return res.status(400).json({ error: 'All required fields must be provided' });
-  }
 
   if (req.entity_type !== 'training_centers') {
     return res.status(403).json({ error: 'Only training centers can update training programs' });
@@ -1479,7 +1337,7 @@ app.put('/training_programs/:id', verifyToken, upload.single('image'), async (re
       location,
       start_date,
       end_date,
-      image: file ? file.path : existingProgram[0].image
+      image: file ? file.path : existingProgram[0].image || '/'
     };
 
     await pool.query(
@@ -1548,7 +1406,7 @@ app.get('/training_programs/:id/trainers', verifyToken, async (req, res) => {
 
     const [results] = await pool.query(
       `SELECT t.id, t.first_name, t.last_name, t.email, t.date_of_birth, t.gender, t.wilaya, t.Commune, t.Street, 
-              t.education_level, t.interests, t.other_skill, t.profile_picture, t.certificated, t.cv, t.phone, t.specialty, t.created_at
+              t.education_level, t.other_skill, t.profile_picture, t.certificated, t.cv, t.phone, t.specialty, t.created_at
        FROM trainers t
        JOIN program_trainers pt ON t.id = pt.trainer_id
        WHERE pt.training_program_id = ?`,
@@ -1646,7 +1504,7 @@ app.get('/internship_applications/:id', verifyToken, async (req, res) => {
 });
 
 app.post('/internship_applications', verifyToken, async (req, res) => {
-  const { internship_id, status } = req.body;
+  const { internship_id, status = 'pending' } = req.body;
 
   if (!internship_id) {
     return res.status(400).json({ error: 'Internship ID is required' });
@@ -1671,10 +1529,10 @@ app.post('/internship_applications', verifyToken, async (req, res) => {
       [
         req.userId,
         internship_id,
-        existingUser[0].level_of_education,
-        existingUser[0].cv,
-        existingUser[0].certificate,
-        status || 'pending'
+        existingUser[0].level_of_education || '/',
+        existingUser[0].cv || '/',
+        existingUser[0].certificate || '/',
+        status
       ]
     );
 
@@ -1686,11 +1544,7 @@ app.post('/internship_applications', verifyToken, async (req, res) => {
 });
 
 app.put('/internship_applications/:id', verifyToken, async (req, res) => {
-  const { education_level, status } = req.body;
-
-  if (!education_level || !status) {
-    return res.status(400).json({ error: 'Education level and status are required' });
-  }
+  const { education_level = '/', status = 'pending' } = req.body;
 
   try {
     const [existingApplication] = await pool.query('SELECT user_id FROM internship_applications WHERE id = ?', [req.params.id]);
@@ -1767,7 +1621,7 @@ app.get('/program_applications/:id', verifyToken, async (req, res) => {
 });
 
 app.post('/program_applications', verifyToken, async (req, res) => {
-  const { training_program_id, status } = req.body;
+  const { training_program_id, status = 'pending' } = req.body;
 
   if (!training_program_id) {
     return res.status(400).json({ error: 'Training program ID is required' });
@@ -1792,11 +1646,11 @@ app.post('/program_applications', verifyToken, async (req, res) => {
       [
         req.userId,
         training_program_id,
-        existingUser[0].level_of_education,
-        existingUser[0].profile_picture,
-        existingUser[0].cv,
-        existingUser[0].certificate,
-        status || 'pending'
+        existingUser[0].level_of_education || '/',
+        existingUser[0].profile_picture || '/',
+        existingUser[0].cv || '/',
+        existingUser[0].certificate || '/',
+        status
       ]
     );
 
@@ -1808,11 +1662,7 @@ app.post('/program_applications', verifyToken, async (req, res) => {
 });
 
 app.put('/program_applications/:id', verifyToken, async (req, res) => {
-  const { education_level, status } = req.body;
-
-  if (!education_level || !status) {
-    return res.status(400).json({ error: 'Education level and status are required' });
-  }
+  const { education_level = '/', status = 'pending' } = req.body;
 
   try {
     const [existingApplication] = await pool.query('SELECT user_id FROM program_applications WHERE id = ?', [req.params.id]);
@@ -1861,16 +1711,6 @@ app.get('/users/:id/program_applications', verifyToken, async (req, res) => {
   }
 });
 
-app.get('/interests', verifyToken, async (req, res) => {
-  try {
-    const [results] = await pool.query('SELECT id, name, created_at FROM interests');
-    res.json(results);
-  } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
 app.get('/companies/:id/internship_applications', verifyToken, async (req, res) => {
   const companyId = req.params.id;
 
@@ -1880,7 +1720,7 @@ app.get('/companies/:id/internship_applications', verifyToken, async (req, res) 
       return res.status(404).json({ error: 'الشركة غير موجودة' });
     }
 
-    if (req.companyId !== parseInt(companyId) && !req.isAdmin) {
+    if (req.entity_type !== 'companies' || req.userId !== parseInt(companyId)) {
       return res.status(403).json({ error: 'غير مصرح لك برؤية طلبات هذه الشركة' });
     }
 
@@ -1935,7 +1775,7 @@ app.get('/training_centers/:id/program_applications', verifyToken, async (req, r
       return res.status(404).json({ error: 'مركز التدريب غير موجود' });
     }
 
-    if (req.centerId !== parseInt(centerId) && !req.isAdmin) {
+    if (req.entity_type !== 'training_centers' || req.userId !== parseInt(centerId)) {
       return res.status(403).json({ error: 'غير مصرح لك برؤية طلبات هذا المركز' });
     }
 
