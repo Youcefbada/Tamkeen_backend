@@ -1499,7 +1499,7 @@ app.put(
       const center_id = req.userId;
       const [existingProgram] = await pool.query('SELECT center_id, image FROM training_programs WHERE id = ?', [req.params.id]);
       if (existingProgram.length === 0) return res.status(404).json({ error: 'Training program not found' });
-      if (existingProgram[0].center_id !== center_id) return res.status(403).json({ error: 'Not authorized to update this program' });
+      if (existingProgram[0].center_id !== center_id) return res.status(403).json({ error: 'Not authorized to update this training program' });
       const updateData = {
         title,
         description,
@@ -1546,7 +1546,7 @@ app.delete('/training_programs/:id', verifyToken, async (req, res) => {
     const center_id = req.userId;
     const [existingProgram] = await pool.query('SELECT center_id FROM training_programs WHERE id = ?', [req.params.id]);
     if (existingProgram.length === 0) return res.status(404).json({ error: 'Training program not found' });
-    if (existingProgram[0].center_id !== center_id) return res.status(403).json({ error: 'Not authorized to delete this program' });
+    if (existingProgram[0].center_id !== center_id) return res.status(403).json({ error: 'Not authorized to delete this training program' });
     await pool.query('DELETE FROM training_programs WHERE id = ?', [req.params.id]);
     res.json({ message: 'Training program deleted successfully' });
   } catch (error) {
@@ -1554,7 +1554,7 @@ app.delete('/training_programs/:id', verifyToken, async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
-app.get('/training_centers/:id/programs', verifyToken, async (req, res) => {
+app.get('/training_centers/:id/training_programs', verifyToken, async (req, res) => {
   try {
     const centerId = req.params.id;
     const [existingCenter] = await pool.query('SELECT id FROM training_centers WHERE id = ?', [centerId]);
@@ -1583,694 +1583,231 @@ app.get('/training_centers/:id/programs', verifyToken, async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
-app.get('/training_programs/:id/trainers', verifyToken, async (req, res) => {
+app.delete('/internship_applications/:id', verifyToken, async (req, res) => {
   try {
-    const programId = req.params.id;
-    const [existingProgram] = await pool.query('SELECT id FROM training_programs WHERE id = ?', [programId]);
-    if (existingProgram.length === 0) return res.status(404).json({ error: 'Training program not found' });
+    const [existingApplication] = await pool.query('SELECT user_id, internship_id FROM internship_applications WHERE id = ?', [req.params.id]);
+    if (existingApplication.length === 0) return res.status(404).json({ error: 'طلب التدريب الداخلي غير موجود' });
+
+    const [internship] = await pool.query('SELECT company_id FROM internships WHERE id = ?', [existingApplication[0].internship_id]);
+    if (internship.length === 0) return res.status(404).json({ error: 'التدريب الداخلي غير موجود' });
+
+    if (req.entity_type === 'users' && req.userId !== existingApplication[0].user_id) {
+      return res.status(403).json({ error: 'غير مصرح لك بحذف هذا الطلب' });
+    }
+    if (req.entity_type === 'companies' && req.userId !== internship[0].company_id) {
+      return res.status(403).json({ error: 'غير مصرح لك بحذف طلبات هذا التدريب' });
+    }
+    if (req.entity_type !== 'users' && req.entity_type !== 'companies') {
+      return res.status(403).json({ error: 'غير مصرح لك بحذف طلبات التدريب' });
+    }
+
+    await pool.query('DELETE FROM internship_applications WHERE id = ?', [req.params.id]);
+
+    res.json({ message: 'تم حذف طلب التدريب الداخلي بنجاح' });
+  } catch (error) {
+    console.error('خطأ في حذف طلب التدريب الداخلي:', error);
+    res.status(500).json({ error: 'خطأ في الخادم' });
+  }
+});
+app.get('/users/:id/internship_applications', verifyToken, async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const [existingUser] = await pool.query('SELECT id FROM users WHERE id = ?', [userId]);
+    if (existingUser.length === 0) return res.status(404).json({ error: 'المستخدم غير موجود' });
+
+    if (req.entity_type === 'users' && req.userId !== parseInt(userId)) {
+      return res.status(403).json({ error: 'غير مصرح لك برؤية طلبات هذا المستخدم' });
+    }
+
     const [results] = await pool.query(
-      `SELECT t.id, t.first_name, t.last_name, t.email, t.date_of_birth, t.gender, t.wilaya, t.commune, t.street, 
-              t.education_level, t.interests, t.other_skill, t.profile_picture, t.certificated, t.cv, t.phone, t.specialty, t.created_at
-       FROM trainers t
-       JOIN program_trainers pt ON t.id = pt.trainer_id
-       WHERE pt.training_program_id = ?`,
-      [programId]
+      `
+      SELECT 
+        ia.id AS application_id,
+        ia.user_id,
+        ia.internship_id,
+        ia.education_level,
+        ia.cv,
+        ia.certificate,
+        ia.status,
+        ia.created_at AS application_date,
+        i.title AS internship_title,
+        c.name AS company_name
+      FROM internship_applications ia
+      INNER JOIN internships i ON ia.internship_id = i.id
+      INNER JOIN companies c ON i.company_id = c.id
+      WHERE ia.user_id = ?
+      ORDER BY ia.created_at DESC
+      `,
+      [userId]
     );
+
     res.json(results.map(row => ({
-      id: row.id,
-      first_name: row.first_name || '/',
-      last_name: row.last_name || '/',
-      email: row.email || '/',
-      date_of_birth: row.date_of_birth ? row.date_of_birth.toISOString().split('T')[0] : '/',
-      gender: row.gender || '/',
-      wilaya: row.wilaya || '/',
-      commune: row.commune || '/',
-      street: row.street || '/',
-      education_level: row.education_level || '/',
-      interests: row.interests || '/',
-      other_skill: row.other_skill || '/',
-      profile_picture: row.profile_picture || '/',
-      certificated: row.certificated || '/',
-      cv: row.cv || '/',
-      phone: row.phone || '/',
-      specialty: row.specialty || '/',
-      created_at: row.created_at.toISOString()
-    })));
-  } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-app.post('/training_programs/:id/trainers', verifyToken, async (req, res) => {
-  const { trainer_id } = req.body;
-  if (!trainer_id) return res.status(400).json({ error: 'Trainer ID is required' });
-  if (req.entity_type !== 'training_centers') {
-    return res.status(403).json({ error: 'Only training centers can assign trainers' });
-  }
-  try {
-    const programId = req.params.id;
-    const center_id = req.userId;
-    const [existingProgram] = await pool.query('SELECT center_id FROM training_programs WHERE id = ?', [programId]);
-    if (existingProgram.length === 0) return res.status(404).json({ error: 'Training program not found' });
-    if (existingProgram[0].center_id !== center_id) return res.status(403).json({ error: 'Not authorized to assign trainers to this program' });
-    const [existingTrainer] = await pool.query('SELECT id FROM trainers WHERE id = ?', [trainer_id]);
-    if (existingTrainer.length === 0) return res.status(404).json({ error: 'Trainer not found' });
-    const [existingAssignment] = await pool.query(
-      'SELECT id FROM program_trainers WHERE training_program_id = ? AND trainer_id = ?',
-      [programId, trainer_id]
-    );
-    if (existingAssignment.length > 0) return res.status(400).json({ error: 'Trainer already assigned to this program' });
-    await pool.query(
-      'INSERT INTO program_trainers (trainer_id, training_program_id) VALUES (?, ?)',
-      [trainer_id, programId]
-    );
-    res.json({ message: 'Trainer assigned successfully' });
-  } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-app.delete('/training_programs/:id/trainers/:trainerId', verifyToken, async (req, res) => {
-  if (req.entity_type !== 'training_centers') {
-    return res.status(403).json({ error: 'Only training centers can remove trainers' });
-  }
-  try {
-    const programId = req.params.id;
-    const trainerId = req.params.trainerId;
-    const center_id = req.userId;
-    const [existingProgram] = await pool.query('SELECT center_id FROM training_programs WHERE id = ?', [programId]);
-    if (existingProgram.length === 0) return res.status(404).json({ error: 'Training program not found' });
-    if (existingProgram[0].center_id !== center_id) return res.status(403).json({ error: 'Not authorized to remove trainers from this program' });
-    const [existingTrainer] = await pool.query('SELECT id FROM trainers WHERE id = ?', [trainerId]);
-    if (existingTrainer.length === 0) return res.status(404).json({ error: 'Trainer not found' });
-    const [existingAssignment] = await pool.query(
-      'SELECT id FROM program_trainers WHERE training_program_id = ? AND trainer_id = ?',
-      [programId, trainerId]
-    );
-    if (existingAssignment.length === 0) return res.status(404).json({ error: 'Trainer not assigned to this program' });
-    await pool.query(
-      'DELETE FROM program_trainers WHERE training_program_id = ? AND trainer_id = ?',
-      [programId, trainerId]
-    );
-    res.json({ message: 'Trainer removed successfully' });
-  } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-app.get('/internship_applications', verifyToken, async (req, res) => {
-  try {
-    const [results] = await pool.query(
-      'SELECT id, user_id, internship_id, education_level, cv, certificate, status, created_at FROM internship_applications'
-    );
-    res.json(results.map(row => ({
-      id: row.id,
+      application_id: row.application_id,
       user_id: row.user_id,
       internship_id: row.internship_id,
       education_level: row.education_level || '/',
       cv: row.cv || '/',
       certificate: row.certificate || '/',
       status: row.status || 'pending',
-      created_at: row.created_at.toISOString()
+      application_date: row.application_date.toISOString(),
+      internship_title: row.internship_title || '/',
+      company_name: row.company_name || '/'
     })));
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'Server error' });
+    console.error('خطأ في استرجاع طلبات التدريب الداخلي:', error);
+    res.status(500).json({ error: 'خطأ في الخادم' });
   }
 });
-app.get('/internship_applications/:id', verifyToken, async (req, res) => {
-  try {
-    const [results] = await pool.query(
-      'SELECT id, user_id, internship_id, education_level, cv, certificate, status, created_at FROM internship_applications WHERE id = ?',
-      [req.params.id]
-    );
-    if (results.length === 0) return res.status(404).json({ error: 'Internship application not found' });
-    const application = results[0];
-    res.json({
-      id: application.id,
-      user_id: application.user_id,
-      internship_id: application.internship_id,
-      education_level: application.education_level || '/',
-      cv: application.cv || '/',
-      certificate: application.certificate || '/',
-      status: application.status || 'pending',
-      created_at: application.created_at.toISOString()
-    });
-  } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-app.post(
-  '/internship_applications',
-  verifyToken,
-  async (req, res) => {
-    const { internship_id, status = 'pending' } = req.body;
-    if (!internship_id) {
-      return res.status(400).json({ error: 'Internship ID is required' });
-    }
-    if (req.entity_type !== 'users') {
-      return res.status(403).json({ error: 'Only users can apply for internships' });
-    }
-    try {
-      const user_id = req.userId;
-      const [existingUser] = await pool.query(
-        'SELECT id, level_of_education, cv, certificate FROM users WHERE id = ?',
-        [user_id]
-      );
-      if (existingUser.length === 0) return res.status(404).json({ error: 'User not found' });
-      const [existingInternship] = await pool.query('SELECT id FROM internships WHERE id = ?', [internship_id]);
-      if (existingInternship.length === 0) return res.status(404).json({ error: 'Internship not found' });
-      const [existingApplication] = await pool.query(
-        'SELECT id FROM internship_applications WHERE user_id = ? AND internship_id = ?',
-        [user_id, internship_id]
-      );
-      if (existingApplication.length > 0) return res.status(400).json({ error: 'User has already applied to this internship' });
-      const [result] = await pool.query(
-        `INSERT INTO internship_applications 
-        (user_id, internship_id, education_level, cv, certificate, status, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, NOW())`,
-        [
-          user_id,
-          internship_id,
-          existingUser[0].level_of_education || '/',
-          existingUser[0].cv || '/',
-          existingUser[0].certificate || '/',
-          status
-        ]
-      );
-      res.json({ message: 'Internship application created successfully', applicationId: result.insertId });
-    } catch (error) {
-      console.error('Error:', error);
-      res.status(500).json({ error: 'Server error' });
-    }
-  }
-);
-app.put(
-  '/internship_applications/:id',
-  verifyToken,
-  async (req, res) => {
-    const { education_level = '/', status = 'pending' } = req.body;
-    try {
-      const [existingApplication] = await pool.query(
-        'SELECT user_id, internship_id FROM internship_applications WHERE id = ?',
-        [req.params.id]
-      );
-      if (existingApplication.length === 0) return res.status(404).json({ error: 'Internship application not found' });
-      const [internship] = await pool.query(
-        'SELECT company_id FROM internships WHERE id = ?',
-        [existingApplication[0].internship_id]
-      );
-      if (internship.length === 0) return res.status(404).json({ error: 'Internship not found' });
-      if (
-        req.entity_type === 'users' && existingApplication[0].user_id !== req.userId ||
-        req.entity_type === 'companies' && internship[0].company_id !== req.userId
-      ) {
-        return res.status(403).json({ error: 'Not authorized to update this application' });
-      }
-      await pool.query(
-        `UPDATE internship_applications SET education_level = ?, status = ? WHERE id = ?`,
-        [education_level, status, req.params.id]
-      );
-      res.json({ message: 'Internship application updated successfully' });
-    } catch (error) {
-      console.error('Error:', error);
-      res.status(500).json({ error: 'Server error' });
-    }
-  }
-);
-app.delete('/internship_applications/:id', verifyToken, async (req, res) => {
-  try {
-    const applicationId = parseInt(req.params.id);
-    if (isNaN(applicationId)) {
-      return res.status(400).json({ error: 'Invalid application ID' });
-    }
-
-    const [existingApplication] = await pool.query(
-      'SELECT user_id, internship_id FROM internship_applications WHERE id = ?',
-      [applicationId]
-    );
-    
-    if (!existingApplication.length) {
-      return res.status(404).json({ error: 'Internship application not found' });
-    }
-
-    // Verify user owns the application
-    if (req.entity_type === 'users' && req.userId !== existingApplication[0].user_id) {
-      return res.status(403).json({ error: 'Unauthorized to delete this application' });
-    }
-
-    await pool.query('DELETE FROM internship_applications WHERE id = ?', [applicationId]);
-
-    res.json({ 
-      message: 'Internship application deleted successfully',
-      applicationId 
-    });
-  } catch (error) {
-    console.error('Error deleting internship application:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-app.get('/users/:id/internship_applications', verifyToken, async (req, res) => {
-  try {
-    const userId = parseInt(req.params.id);
-    if (isNaN(userId)) {
-      return res.status(400).json({ error: 'Invalid user ID' });
-    }
-
-    if (req.entity_type === 'users' && req.userId !== userId) {
-      return res.status(403).json({ error: 'Unauthorized to view these applications' });
-    }
-
-    const { limit, offset } = getPaginationParams(req.query);
-
-    const [results] = await pool.query(
-      `SELECT id, user_id, internship_id, education_level, cv, certificate, status, created_at 
-       FROM internship_applications 
-       WHERE user_id = ?
-       ORDER BY created_at DESC
-       LIMIT ? OFFSET ?`,
-      [userId, limit, offset]
-    );
-
-    const [countResult] = await pool.query(
-      'SELECT COUNT(*) as total FROM internship_applications WHERE user_id = ?',
-      [userId]
-    );
-
-    res.json({
-      message: 'Internship applications retrieved successfully',
-      applications: results,
-      pagination: {
-        total: countResult[0].total,
-        page: req.query.page || 1,
-        limit,
-        totalPages: Math.ceil(countResult[0].total / limit)
-      }
-    });
-  } catch (error) {
-    console.error('Error fetching internship applications:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
 app.get('/program_applications', verifyToken, async (req, res) => {
+  if (req.entity_type !== 'training_centers' && req.entity_type !== 'users') {
+    return res.status(403).json({ error: 'غير مصرح لك برؤية جميع طلبات البرامج التدريبية' });
+  }
   try {
-    if (req.entity_type !== 'training_centers') {
-      return res.status(403).json({ error: 'Unauthorized to view all program applications' });
-    }
-
-    const { limit, offset } = getPaginationParams(req.query);
-
     const [results] = await pool.query(
-      `SELECT id, user_id, training_program_id, education_level, profile_picture, cv, certificate, status, created_at 
-       FROM program_applications
-       ORDER BY created_at DESC
-       LIMIT ? OFFSET ?`,
-      [limit, offset]
-    );
-
-    const [countResult] = await pool.query('SELECT COUNT(*) as total FROM program_applications');
-
-    res.json({
-      message: 'Program applications retrieved successfully',
-      applications: results,
-      pagination: {
-        total: countResult[0].total,
-        page: req.query.page || 1,
-        limit,
-        totalPages: Math.ceil(countResult[0].total / limit)
-      }
-    });
-  } catch (error) {
-    console.error('Error fetching program applications:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-app.get('/program_applications/:id', verifyToken, async (req, res) => {
-  try {
-    const applicationId = parseInt(req.params.id);
-    if (isNaN(applicationId)) {
-      return res.status(400).json({ error: 'Invalid application ID' });
-    }
-
-    const [results] = await pool.query(
-      `SELECT id, user_id, training_program_id, education_level, profile_picture, cv, certificate, status, created_at 
-       FROM program_applications 
-       WHERE id = ?`,
-      [applicationId]
-    );
-
-    if (!results.length) {
-      return res.status(404).json({ error: 'Training program application not found' });
-    }
-
-    // Verify user authorization
-    if (req.entity_type === 'users' && req.userId !== results[0].user_id) {
-      return res.status(403).json({ error: 'Unauthorized to view this application' });
-    }
-
-    res.json({
-      message: 'Program application retrieved successfully',
-      application: results[0]
-    });
-  } catch (error) {
-    console.error('Error fetching program application:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-app.post('/program_applications', verifyToken, async (req, res) => {
-  const { training_program_id, status = 'pending' } = req.body;
-
-  if (!training_program_id || isNaN(parseInt(training_program_id))) {
-    return res.status(400).json({ error: 'Valid training program ID is required' });
-  }
-
-  if (!validateStatus(status)) {
-    return res.status(400).json({ error: 'Invalid status value' });
-  }
-
-  try {
-    const [existingUser] = await pool.query(
-      'SELECT id, level_of_education, profile_picture, cv, certificate FROM users WHERE id = ?',
-      [req.userId]
-    );
-    if (!existingUser.length) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    const [existingProgram] = await pool.query(
-      'SELECT id FROM training_programs WHERE id = ?',
-      [training_program_id]
-    );
-    if (!existingProgram.length) {
-      return res.status(404).json({ error: 'Training program not found' });
-    }
-
-    const [existingApplication] = await pool.query(
-      'SELECT id FROM program_applications WHERE user_id = ? AND training_program_id = ?',
-      [req.userId, training_program_id]
-    );
-    if (existingApplication.length) {
-      return res.status(400).json({ error: 'User has already applied to this training program' });
-    }
-
-    const [result] = await pool.query(
-      `INSERT INTO program_applications 
-       (user_id, training_program_id, education_level, profile_picture, cv, certificate, status, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, NOW())`,
-      [
-        req.userId,
-        training_program_id,
-        existingUser[0].level_of_education || null,
-        existingUser[0].profile_picture || null,
-        existingUser[0].cv || null,
-        existingUser[0].certificate || null,
-        status
-      ]
-    );
-
-    res.status(201).json({ 
-      message: 'Training program application created successfully',
-      applicationId: result.insertId 
-    });
-  } catch (error) {
-    console.error('Error creating program application:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-app.put('/program_applications/:id', verifyToken, async (req, res) => {
-  const { education_level, status } = req.body;
-  const applicationId = parseInt(req.params.id);
-
-  if (isNaN(applicationId)) {
-    return res.status(400).json({ error: 'Invalid application ID' });
-  }
-
-  if (status && !validateStatus(status)) {
-    return res.status(400).json({ error: 'Invalid status value' });
-  }
-
-  try {
-    const [existingApplication] = await pool.query(
-      'SELECT user_id, training_program_id FROM program_applications WHERE id = ?',
-      [applicationId]
-    );
-    if (!existingApplication.length) {
-      return res.status(404).json({ error: 'Training program application not found' });
-    }
-
-    // Verify authorization
-    if (req.entity_type === 'users' && req.userId !== existingApplication[0].user_id) {
-      return res.status(403).json({ error: 'Unauthorized to update this application' });
-    }
-
-    // Verify training program exists if center is updating
-    if (req.entity_type === 'training_centers') {
-      const [program] = await pool.query(
-        'SELECT id FROM training_programs WHERE id = ? AND center_id = ?',
-        [existingApplication[0].training_program_id, req.userId]
-      );
-      if (!program.length) {
-        return res.status(403).json({ error: 'Unauthorized to update this application' });
-      }
-    }
-
-    const updates = {};
-    if (education_level) updates.education_level = education_level;
-    if (status) updates.status = status;
-
-    if (Object.keys(updates).length === 0) {
-      return res.status(400).json({ error: 'No valid fields to update' });
-    }
-
-    await pool.query(
-      `UPDATE program_applications 
-       SET education_level = COALESCE(?, education_level), 
-           status = COALESCE(?, status)
-       WHERE id = ?`,
-      [education_level || null, status || null, applicationId]
-    );
-
-    res.json({ 
-      message: 'Training program application updated successfully',
-      applicationId 
-    });
-  } catch (error) {
-    console.error('Error updating program application:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-app.delete('/program_applications/:id', verifyToken, async (req, res) => {
-  try {
-    const applicationId = parseInt(req.params.id);
-    if (isNaN(applicationId)) {
-      return res.status(400).json({ error: 'Invalid application ID' });
-    }
-
-    const [existingApplication] = await pool.query(
-      'SELECT user_id FROM program_applications WHERE id = ?',
-      [applicationId]
-    );
-    if (!existingApplication.length) {
-      return res.status(404).json({ error: 'Training program application not found' });
-    }
-
-    if (req.entity_type === 'users' && req.userId !== existingApplication[0].user_id) {
-      return res.status(403).json({ error: 'Unauthorized to delete this application' });
-    }
-
-    await pool.query('DELETE FROM program_applications WHERE id = ?', [applicationId]);
-
-    res.json({ 
-      message: 'Training program application deleted successfully',
-      applicationId 
-    });
-  } catch (error) {
-    console.error('Error deleting program application:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-app.get('/users/:id/program_applications', verifyToken, async (req, res) => {
-  try {
-    const userId = parseInt(req.params.id);
-    if (isNaN(userId)) {
-      return res.status(400).json({ error: 'Invalid user ID' });
-    }
-
-    if (req.entity_type === 'users' && req.userId !== userId) {
-      return res.status(403).json({ error: 'Unauthorized to view these applications' });
-    }
-
-    const { limit, offset } = getPaginationParams(req.query);
-
-    const [results] = await pool.query(
-      `SELECT id, user_id, training_program_id, education_level, profile_picture, cv, certificate, status, created_at 
-       FROM program_applications 
-       WHERE user_id = ?
-       ORDER BY created_at DESC
-       LIMIT ? OFFSET ?`,
-      [userId, limit, offset]
-    );
-
-    const [countResult] = await pool.query(
-      'SELECT COUNT(*) as total FROM program_applications WHERE user_id = ?',
-      [userId]
-    );
-
-    res.json({
-      message: 'Program applications retrieved successfully',
-      applications: results,
-      pagination: {
-        total: countResult[0].total,
-        page: req.query.page || 1,
-        limit,
-        totalPages: Math.ceil(countResult[0].total / limit)
-      }
-    });
-  } catch (error) {
-    console.error('Error fetching program applications:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-app.get('/companies/:id/internship_applications', verifyToken, async (req, res) => {
-  try {
-    const companyId = parseInt(req.params.id);
-    if (isNaN(companyId)) {
-      return res.status(400).json({ error: 'Invalid company ID' });
-    }
-
-    const [existingCompany] = await pool.query('SELECT id FROM companies WHERE id = ?', [companyId]);
-    if (!existingCompany.length) {
-      return res.status(404).json({ error: 'Company not found' });
-    }
-
-    if (req.entity_type !== 'companies' || req.userId !== companyId) {
-      return res.status(403).json({ error: 'Unauthorized to view these applications' });
-    }
-
-    const { limit, offset } = getPaginationParams(req.query);
-
-    const [applications] = await pool.query(
-      `SELECT 
-        ia.id AS application_id,
-        ia.education_level,
-        ia.cv,
-        ia.certificate,
-        ia.status,
-        ia.created_at AS application_date,
-        i.id AS internship_id,
-        i.title AS internship_title,
-        u.id AS user_id,
-        u.first_name,
-        u.last_name,
-        u.email,
-        u.phone
-      FROM internship_applications ia
-      INNER JOIN internships i ON ia.internship_id = i.id
-      INNER JOIN users u ON ia.user_id = u.id
-      WHERE i.company_id = ?
-      ORDER BY ia.created_at DESC
-      LIMIT ? OFFSET ?`,
-      [companyId, limit, offset]
-    );
-
-    const [countResult] = await pool.query(
-      `SELECT COUNT(*) as total
-       FROM internship_applications ia
-       INNER JOIN internships i ON ia.internship_id = i.id
-       WHERE i.company_id = ?`,
-      [companyId]
-    );
-
-    res.json({
-      message: applications.length ? 'Internship applications retrieved successfully' : 'No internship applications found',
-      applications,
-      pagination: {
-        total: countResult[0].total,
-        page: req.query.page || 1,
-        limit,
-        totalPages: Math.ceil(countResult[0].total / limit)
-      }
-    });
-  } catch (error) {
-    console.error('Error fetching company internship applications:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-app.get('/training_centers/:id/program_applications', verifyToken, async (req, res) => {
-  try {
-    const centerId = parseInt(req.params.id);
-    if (isNaN(centerId)) {
-      return res.status(400).json({ error: 'Invalid training center ID' });
-    }
-
-    const [existingCenter] = await pool.query('SELECT id FROM training_centers WHERE id = ?', [centerId]);
-    if (!existingCenter.length) {
-      return res.status(404).json({ error: 'Training center not found' });
-    }
-
-    if (req.entity_type !== 'training_centers' || req.userId !== centerId) {
-      return res.status(403).json({ error: 'Unauthorized to view these applications' });
-    }
-
-    const { limit, offset } = getPaginationParams(req.query);
-
-    const [applications] = await pool.query(
-      `SELECT 
+      `
+      SELECT 
         pa.id AS application_id,
+        pa.user_id,
+        pa.training_program_id,
         pa.education_level,
         pa.profile_picture,
         pa.cv,
         pa.certificate,
         pa.status,
         pa.created_at AS application_date,
-        tp.id AS program_id,
         tp.title AS program_title,
-        u.id AS user_id,
-        u.first_name,
-        u.last_name,
-        u.email,
-        u.phone
+        tc.name AS center_name
       FROM program_applications pa
       INNER JOIN training_programs tp ON pa.training_program_id = tp.id
-      INNER JOIN users u ON pa.user_id = u.id
-      WHERE tp.center_id = ?
+      INNER JOIN training_centers tc ON tp.center_id = tc.id
       ORDER BY pa.created_at DESC
-      LIMIT ? OFFSET ?`,
-      [centerId, limit, offset]
+      `
     );
 
-    const [countResult] = await pool.query(
-      `SELECT COUNT(*) as total
-       FROM program_applications pa
-       INNER JOIN training_programs tp ON pa.training_program_id = tp.id
-       WHERE tp.center_id = ?`,
-      [centerId]
-    );
-
-    res.json({
-      message: applications.length ? 'Program applications retrieved successfully' : 'No program applications found',
-      applications,
-      pagination: {
-        total: countResult[0].total,
-        page: req.query.page || 1,
-        limit,
-        totalPages: Math.ceil(countResult[0].total / limit)
-      }
-    });
+    res.json(results.map(row => ({
+      application_id: row.application_id,
+      user_id: row.user_id,
+      training_program_id: row.training_program_id,
+      education_level: row.education_level || '/',
+      profile_picture: row.profile_picture || '/',
+      cv: row.cv || '/',
+      certificate: row.certificate || '/',
+      status: row.status || 'pending',
+      application_date: row.application_date.toISOString(),
+      program_title: row.program_title || '/',
+      center_name: row.center_name || '/'
+    })));
   } catch (error) {
-    console.error('Error fetching training center program applications:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('خطأ في استرجاع طلبات البرامج التدريبية:', error);
+    res.status(500).json({ error: 'خطأ في الخادم' });
   }
 });
+app.get('/program_applications/:id', verifyToken, async (req, res) => {
+  try {
+    const [results] = await pool.query(
+      `
+      SELECT 
+        pa.id AS application_id,
+        pa.user_id,
+        pa.training_program_id,
+        pa.education_level,
+        pa.profile_picture,
+        pa.cv,
+        pa.certificate,
+        pa.status,
+        pa.created_at AS application_date,
+        tp.title AS program_title,
+        tc.name AS center_name
+      FROM program_applications pa
+      INNER JOIN training_programs tp ON pa.training_program_id = tp.id
+      INNER JOIN training_centers tc ON tp.center_id = tc.id
+      WHERE pa.id = ?
+      `,
+      [req.params.id]
+    );
+    if (results.length === 0) return res.status(404).json({ error: 'طلب البرنامج التدريبي غير موجود' });
 
-app.listen(3000, () => console.log('Server running on port 3000'));
+    const application = results[0];
+    if (req.entity_type === 'users' && req.userId !== application.user_id) {
+      return res.status(403).json({ error: 'غير مصرح لك برؤية هذا الطلب' });
+    }
+    if (req.entity_type === 'training_centers') {
+      const [program] = await pool.query('SELECT center_id FROM training_programs WHERE id = ?', [application.training_program_id]);
+      if (program.length === 0 || program[0].center_id !== req.userId) {
+        return res.status(403).json({ error: 'غير مصرح لك برؤية طلبات هذا البرنامج' });
+      }
+    }
+
+    res.json({
+      application_id: application.application_id,
+      user_id: application.user_id,
+      training_program_id: application.training_program_id,
+      education_level: application.education_level || '/',
+      profile_picture: application.profile_picture || '/',
+      cv: application.cv || '/',
+      certificate: application.certificate || '/',
+      status: application.status || 'pending',
+      application_date: application.application_date.toISOString(),
+      program_title: application.program_title || '/',
+      center_name: application.center_name || '/'
+    });
+  } catch (error) {
+    console.error('خطأ في استرجاع طلب البرنامج التدريبي:', error);
+    res.status(500).json({ error: 'خطأ في الخادم' });
+  }
+});
+app.post('/program_applications', verifyToken, async (req, res) => {
+  const { training_program_id, status = 'pending' } = req.body;
+
+  if (!training_program_id) {
+    return res.status(400).json({ error: 'معرف البرنامج التدريبي مطلوب' });
+  }
+  if (req.entity_type !== 'users') {
+    return res.status(403).json({ error: 'فقط المستخدمون يمكنهم التقديم للبرامج التدريبية' });
+  }
+
+  try {
+    const [existingUser] = await pool.query('SELECT id, level_of_education, profile_picture, cv, certificate FROM users WHERE id = ?', [req.userId]);
+    if (existingUser.length === 0) return res.status(404).json({ error: 'المستخدم غير موجود' });
+
+    const [existingProgram] = await pool.query('SELECT id FROM training_programs WHERE id = ?', [training_program_id]);
+    if (existingProgram.length === 0) return res.status(404).json({ error: 'البرنامج التدريبي غير موجود' });
+
+    const [existingApplication] = await pool.query(
+      'SELECT id FROM program_applications WHERE user_id = ? AND training_program_id = ?',
+      [req.userId, training_program_id]
+    );
+    if (existingApplication.length > 0) return res.status(400).json({ error: 'لقد قمت بالفعل بالتقديم لهذا البرنامج التدريبي' });
+
+    const [result] = await pool.query(
+      `INSERT INTO program_applications (user_id, training_program_id, education_level, profile_picture, cv, certificate, status, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, NOW())`,
+      [
+        req.userId,
+        training_program_id,
+        existingUser[0].level_of_education || '/',
+        existingUser[0].profile_picture || '/',
+        existingUser[0].cv || '/',
+        existingUser[0].certificate || '/',
+        status
+      ]
+    );
+
+    res.json({ message: 'تم إنشاء طلب البرنامج التدريبي بنجاح', applicationId: result.insertId });
+  } catch (error) {
+    console.error('خطأ في إنشاء طلب البرنامج التدريبي:', error);
+    res.status(500).json({ error: 'خطأ في الخادم' });
+  }
+});
+app.put('/program_applications/:id', verifyToken, async (req, res) => {
+  const { education_level = '/', status = 'pending' } = req.body;
+
+  try {
+    const [existingApplication] = await pool.query('SELECT user_id, training_program_id FROM program_applications WHERE id = ?', [req.params.id]);
+    if (existingApplication.length === 0) return res.status(404).json({ error: 'طلب البرنامج التدريبي غير موجود' });
+
+    if (req.entity_type === 'users' && req.userId !== existingApplication[0].user_id) {
+      return res.status(403).json({ error: 'غير مصرح لك بتحديث هذا الطلب' });
+    }
+    if (req.entity_type === 'training_centers') {
+      const [program] = await pool.query('SELECT center_id FROM training
