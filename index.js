@@ -4,13 +4,18 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import cors from 'cors';
 import bodyParser from 'body-parser';
+import fs from 'fs';
 import dotenv from 'dotenv';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 import multer from 'multer';
 import path  from 'path';
 dotenv.config();
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 const dbConfig = {
   host: process.env.DB_HOST || 'ballast.proxy.rlwy.net',
   user: process.env.DB_USER || 'root',
@@ -673,7 +678,7 @@ app.post('/logout', verifyToken, async (req, res) => {
 });
 app.get('/download/:filename', verifyToken, (req, res) => {
   const { filename } = req.params;
-  const filePath = path.join(__dirname, 'uploads', filename);
+  const filePath = join(__dirname, 'uploads', filename);
 
   // Check if file exists
   if (!fs.existsSync(filePath)) {
