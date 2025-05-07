@@ -670,6 +670,22 @@ app.post('/logout', verifyToken, async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
+app.get('/download/:filename', verifyToken, (req, res) => {
+  const { filename } = req.params;
+  const filePath = path.join(__dirname, 'uploads', filename);
+
+  // Check if file exists
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ message: 'File not found' });
+  }
+
+  // Send the file for download
+  res.download(filePath, filename, (err) => {
+    if (err) {
+      return res.status(500).json({ message: 'Error downloading file' });
+    }
+  });
+});
 app.get('/companies', verifyToken, async (req, res) => {
   try {
     const [results] = await pool.query(
