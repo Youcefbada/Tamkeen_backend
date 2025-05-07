@@ -81,7 +81,7 @@ app.post('/loginEmail', async (req, res) => {
     let user = null;
     let entity_type = '';
     const [users] = await pool.query(
-      'SELECT id, first_name, last_name, email, password, phone, street, user_type, level_of_education, profile_picture, cv, certificate, receive_notifications, notification_type, wilaya, commune, skills, interserte FROM users WHERE email = ?',
+      'SELECT id, first_name, last_name, email, password, phone, street, user_type, level_of_education, profile_picture, cv, certificate, receive_notifications, notification_type, wilaya, commune, skills, interests FROM users WHERE email = ?',
       [email]
     );
     const [companies] = await pool.query(
@@ -131,7 +131,7 @@ app.post('/loginEmail', async (req, res) => {
         wilaya: user.wilaya || '/',
         commune: user.commune || '/',
         skills: user.skills || '/',
-        interserte: user.interserte || '/'
+        interests: user.interests || '/'
       }),
       ...(entity_type === 'companies' && {
         domain: user.domain || '/',
@@ -183,7 +183,7 @@ app.post('/loginPhone', async (req, res) => {
     let user = null;
     let entity_type = '';
     const [users] = await pool.query(
-      'SELECT id, first_name, last_name, phone, password, email, street, user_type, level_of_education, profile_picture, cv, certificate, receive_notifications, notification_type, wilaya, commune, skills, interserte FROM users WHERE phone = ?',
+      'SELECT id, first_name, last_name, phone, password, email, street, user_type, level_of_education, profile_picture, cv, certificate, receive_notifications, notification_type, wilaya, commune, skills, interests FROM users WHERE phone = ?',
       [phone]
     );
     const [companies] = await pool.query(
@@ -233,7 +233,7 @@ app.post('/loginPhone', async (req, res) => {
         wilaya: user.wilaya || '/',
         commune: user.commune || '/',
         skills: user.skills || '/',
-        interserte: user.interserte || '/'
+        interests: user.interests || '/'
       }),
       ...(entity_type === 'companies' && {
         domain: user.domain || '/',
@@ -300,7 +300,7 @@ app.post(
       wilaya = '/',
       commune = '/',
       skills = '/',
-      interserte = '/'
+      interests = '/'
     } = req.body;
     const files = req.files;
     try {
@@ -315,7 +315,7 @@ app.post(
       const [result] = await pool.query(
         `INSERT INTO users 
         (first_name, last_name, email, password, phone, street, user_type, level_of_education, 
-         profile_picture, cv, certificate, receive_notifications, notification_type, wilaya, commune, skills, interserte, created_at) 
+         profile_picture, cv, certificate, receive_notifications, notification_type, wilaya, commune, skills, interests, created_at) 
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
         [
           first_name,
@@ -334,7 +334,7 @@ app.post(
           wilaya,
           commune,
           skills,
-          interserte,
+          interests,
         ]
       );
       res.json({ message: 'User registered successfully', userId: result.insertId });
@@ -526,7 +526,7 @@ app.post(
 app.get('/users/:id', verifyToken, async (req, res) => {
   try {
     const [results] = await pool.query(
-      'SELECT id, first_name, last_name, email, phone, street, user_type, level_of_education, profile_picture, cv, certificate, receive_notifications, notification_type, wilaya, commune, skills, interserte, created_at FROM users WHERE id = ?',
+      'SELECT id, first_name, last_name, email, phone, street, user_type, level_of_education, profile_picture, cv, certificate, receive_notifications, notification_type, wilaya, commune, skills, interests, created_at FROM users WHERE id = ?',
       [req.params.id]
     );
     if (results.length === 0) return res.status(404).json({ error: 'User not found' });
@@ -548,7 +548,7 @@ app.get('/users/:id', verifyToken, async (req, res) => {
       wilaya: user.wilaya || '/',
       commune: user.commune || '/',
       skills: user.skills || '/',
-      interserte: user.interserte || '/',
+      interests: user.interests || '/',
       created_at: user.created_at.toISOString()
     });
   } catch (error) {
@@ -579,7 +579,7 @@ app.put(
       wilaya = '/',
       commune = '/',
       skills = '/',
-      interserte = '/'
+      interests = '/'
     } = req.body;
     const files = req.files;
     try {
@@ -606,7 +606,7 @@ app.put(
         wilaya,
         commune,
         skills,
-        interserte,
+        interests,
         profile_picture: files.profile_picture ? files.profile_picture[0].path : existingUser[0].profile_picture || '/',
         cv: files.cv ? files.cv[0].path : existingUser[0].cv || '/',
         certificate: files.certificate ? files.certificate[0].path : existingUser[0].certificate || '/'
@@ -616,7 +616,7 @@ app.put(
         `UPDATE users SET 
         first_name = ?, last_name = ?, email = ?, password = ?, phone = ?, street = ?, 
         user_type = ?, level_of_education = ?, profile_picture = ?, cv = ?, certificate = ?, 
-        receive_notifications = ?, notification_type = ?, wilaya = ?, commune = ?, skills = ?, interserte = ?
+        receive_notifications = ?, notification_type = ?, wilaya = ?, commune = ?, skills = ?, interests = ?
         WHERE id = ?`,
         [
           updateData.first_name,
@@ -635,7 +635,7 @@ app.put(
           updateData.wilaya,
           updateData.commune,
           updateData.skills,
-          updateData.interserte,
+          updateData.interests,
           req.params.id
         ]
       );
