@@ -678,7 +678,8 @@ app.put(
       skills = null,
       interests = null,
     } = req.body;
-    const files = req.files;
+    const files = req.files || {};
+    // Ensure that the files object is not undefined  or null
 
     try {
       // Check if the user exists
