@@ -563,7 +563,7 @@ app.get('/users/:id', verifyToken, async (req, res) => {
   }
 });
 app.put(
-  '/users/:id',
+  '/userss/:id',
   verifyToken,
   upload.fields([
     { name: 'profile_picture', maxCount: 1 },
@@ -652,6 +652,97 @@ app.put(
     }
   }
 );
+
+app.put(
+  '/users/:id',
+  verifyToken,
+  upload.fields([
+    { name: 'profile_picture', maxCount: 1 },
+    { name: 'cv', maxCount: 1 },
+    { name: 'certificate', maxCount: 1 },
+  ]),
+  async (req, res) => {
+    const {
+      first_name = null,
+      last_name = null,
+      email = null,
+      password = null,
+      phone = null,
+      street = null,
+      user_type = null,
+      level_of_education = null,
+      receive_notifications = null,
+      notification_type = null,
+      wilaya = null,
+      commune = null,
+      skills = null,
+      interests = null,
+    } = req.body;
+    const files = req.files;
+
+    try {
+      // Check if the user exists
+      const [existingUser] = await pool.query(
+        'SELECT id, password, profile_picture, cv, certificate FROM users WHERE id = ?',
+        [req.params.id]
+      );
+      if (existingUser.length === 0) return res.status(404).json({ error: 'User not found' });
+
+      // Check if the email is already in use by another user
+      if (email && email !== '/') {
+        const [emailCheck] = await pool.query(
+          'SELECT id FROM users WHERE email = ? AND id != ?',
+          [email, req.params.id]
+        );
+        if (emailCheck.length > 0) return res.status(400).json({ error: 'Email already exists' });
+      }
+
+      // Prepare the update data
+      const updateData = {
+        first_name,
+        last_name,
+        email,
+        phone,
+        street,
+        user_type,
+        level_of_education,
+        receive_notifications: receive_notifications === 'true' || receive_notifications === true ? 1 : 0,
+        notification_type,
+        wilaya,
+        commune,
+        skills,
+        interests,
+        profile_picture: files.profile_picture ? files.profile_picture[0].path : existingUser[0].profile_picture,
+        cv: files.cv ? files.cv[0].path : existingUser[0].cv,
+        certificate: files.certificate ? files.certificate[0].path : existingUser[0].certificate,
+      };
+
+      // Hash the password if provided
+      updateData.password = password ? await bcrypt.hash(password, 10) : existingUser[0].password;
+
+      // Remove null or undefined fields from the update data
+      const filteredData = Object.entries(updateData).reduce((acc, [key, value]) => {
+        if (value !== null && value !== undefined) acc[key] = value;
+        return acc;
+      }, {});
+
+      // Build the SQL query dynamically
+      const fields = Object.keys(filteredData).map((key) => `${key} = ?`).join(', ');
+      const values = Object.values(filteredData);
+
+      await pool.query(
+        `UPDATE users SET ${fields} WHERE id = ?`,
+        [...values, req.params.id]
+      );
+
+      res.json({ message: 'User updated successfully' });
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).json({ error: 'Server error' });
+    }
+  }
+);
+
 app.delete('/users/:id', verifyToken, async (req, res) => {
   try {
     const [existingUser] = await pool.query('SELECT id FROM users WHERE id = ?', [req.params.id]);
