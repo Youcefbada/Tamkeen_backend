@@ -712,9 +712,9 @@ app.put(
         commune,
         skills,
         interests,
-        profile_picture: files.profile_picture ? files.profile_picture[0].path : existingUser[0].profile_picture,
-        cv: files.cv ? files.cv[0].path : existingUser[0].cv,
-        certificate: files.certificate ? files.certificate[0].path : existingUser[0].certificate,
+        profile_picture: files.profile_picture?.[0]?.path || existingUser[0].profile_picture,
+        cv: files.cv?.[0]?.path || existingUser[0].cv,
+        certificate: files.certificate?.[0]?.path || existingUser[0].certificate,
       };
 
       // Hash the password if provided
