@@ -738,7 +738,7 @@ app.put(
       res.json({ message: 'User updated successfully' });
     } catch (error) {
       console.error('Error:', error);
-      res.status(500).json({ error: 'Server error' });
+      res.status(500).json({ error: error.message });
     }
   }
 );
