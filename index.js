@@ -676,7 +676,7 @@ app.post('/logout', verifyToken, async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
-app.get('/download/:filename', verifyToken, (req, res) => {
+app.get('/download/:filename', (req, res) => {
   const { filename } = req.params;
   const filePath = join(__dirname, 'uploads', filename);
 
